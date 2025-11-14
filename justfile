@@ -10,15 +10,21 @@ help:
     @echo "DGX Spark MCP Server - Development Commands"
     @echo ""
     @echo "Quick Start:"
-    @echo "  just setup           - First-time setup for development"
-    @echo "  just dev             - Start development server with hot reload"
-    @echo "  just test            - Run tests"
-    @echo "  just build           - Build the project"
+    @echo "  just setup                  - First-time setup for development"
+    @echo "  just dev                    - Start development server with hot reload"
+    @echo "  just test                   - Run tests"
+    @echo "  just build                  - Build the project"
+    @echo ""
+    @echo "MCP Configuration:"
+    @echo "  just generate-mcp-config    - Show MCP config for Claude Desktop"
+    @echo "  just save-mcp-config        - Save MCP config to mcp-config.json"
+    @echo "  just install-mcp-config     - Auto-install config (macOS/Linux)"
+    @echo "  just mcp-status             - Show MCP server status"
     @echo ""
     @echo "Common Workflows:"
-    @echo "  just pre-commit      - Run all pre-commit checks"
-    @echo "  just pre-push        - Run all pre-push checks"
-    @echo "  just link            - Link package globally for testing"
+    @echo "  just pre-commit             - Run all pre-commit checks"
+    @echo "  just pre-push               - Run all pre-push checks"
+    @echo "  just link                   - Link package globally for testing"
     @echo ""
     @echo "See 'just --list' for all available commands"
     @echo ""
@@ -262,6 +268,119 @@ logs:
 logs-error:
     @echo "Tailing error logs..."
     tail -f logs/dgx-mcp-error.log
+
+# ============================================================================
+# MCP Configuration Commands
+# ============================================================================
+
+# Generate MCP configuration for Claude Desktop/Code
+generate-mcp-config:
+    @echo "Generating MCP configuration..."
+    @echo ""
+    @echo "Add this to your Claude Desktop config:"
+    @echo ""
+    @echo '{'
+    @echo '  "mcpServers": {'
+    @echo '    "dgx-spark": {'
+    @echo '      "command": "node",'
+    @echo '      "args": ["{{justfile_directory()}}/dist/index.js"]'
+    @echo '    }'
+    @echo '  }'
+    @echo '}'
+    @echo ""
+    @echo "Configuration file locations:"
+    @echo "  macOS:   ~/Library/Application Support/Claude/claude_desktop_config.json"
+    @echo "  Linux:   ~/.config/Claude/claude_desktop_config.json"
+    @echo "  Windows: %APPDATA%\\Claude\\claude_desktop_config.json"
+    @echo ""
+
+# Generate and save MCP config to local file
+save-mcp-config:
+    @echo "Saving MCP configuration to mcp-config.json..."
+    @echo '{' > mcp-config.json
+    @echo '  "mcpServers": {' >> mcp-config.json
+    @echo '    "dgx-spark": {' >> mcp-config.json
+    @echo '      "command": "node",' >> mcp-config.json
+    @echo '      "args": ["{{justfile_directory()}}/dist/index.js"]' >> mcp-config.json
+    @echo '    }' >> mcp-config.json
+    @echo '  }' >> mcp-config.json
+    @echo '}' >> mcp-config.json
+    @echo "✓ Configuration saved to mcp-config.json"
+    @echo ""
+    @echo "To use this configuration:"
+    @echo "  1. Copy the contents of mcp-config.json"
+    @echo "  2. Merge it into your Claude Desktop config file"
+    @echo ""
+
+# Install MCP config to Claude Desktop (macOS/Linux)
+install-mcp-config: build
+    #!/usr/bin/env bash
+    set -euo pipefail
+
+    # Detect OS and set config path
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        CONFIG_DIR="$HOME/Library/Application Support/Claude"
+        CONFIG_FILE="$CONFIG_DIR/claude_desktop_config.json"
+    elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        CONFIG_DIR="$HOME/.config/Claude"
+        CONFIG_FILE="$CONFIG_DIR/claude_desktop_config.json"
+    else
+        echo "❌ Unsupported OS: $OSTYPE"
+        echo "Please manually add configuration to your Claude Desktop config"
+        exit 1
+    fi
+
+    # Create config directory if it doesn't exist
+    mkdir -p "$CONFIG_DIR"
+
+    # Generate the server config
+    SERVER_CONFIG=$(cat <<EOF
+    "dgx-spark": {
+      "command": "node",
+      "args": ["{{justfile_directory()}}/dist/index.js"]
+    }
+    EOF
+    )
+
+    # Check if config file exists
+    if [ -f "$CONFIG_FILE" ]; then
+        echo "⚠️  Config file already exists at: $CONFIG_FILE"
+        echo ""
+        echo "Please manually add this to your mcpServers section:"
+        echo ""
+        echo "$SERVER_CONFIG"
+        echo ""
+    else
+        echo "Creating new config file at: $CONFIG_FILE"
+        cat > "$CONFIG_FILE" <<EOF
+    {
+      "mcpServers": {
+        $SERVER_CONFIG
+      }
+    }
+    EOF
+        echo "✓ Configuration installed successfully!"
+        echo ""
+        echo "Restart Claude Desktop to use the DGX Spark MCP server"
+    fi
+
+# Show current MCP configuration status
+mcp-status:
+    @echo "MCP Server Status:"
+    @echo ""
+    @echo "  Project: {{justfile_directory()}}"
+    @echo "  Binary:  {{justfile_directory()}}/dist/index.js"
+    @if [ -f "{{justfile_directory()}}/dist/index.js" ]; then \
+        echo "  Status:  ✓ Built and ready"; \
+    else \
+        echo "  Status:  ✗ Not built (run 'just build')"; \
+    fi
+    @echo ""
+    @echo "To configure Claude Desktop, run:"
+    @echo "  just generate-mcp-config    # Show config to copy"
+    @echo "  just save-mcp-config        # Save config to file"
+    @echo "  just install-mcp-config     # Auto-install (macOS/Linux)"
+    @echo ""
 
 # ============================================================================
 # Setup and Installation Commands

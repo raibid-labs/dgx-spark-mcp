@@ -46,3 +46,4 @@ temp/
 
 # Debug
 .debug/
+mcp-config.json
