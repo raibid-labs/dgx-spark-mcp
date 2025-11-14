@@ -365,23 +365,23 @@ install-mcp-config: build
         echo "Restart Claude Desktop to use the DGX Spark MCP server"
     fi
 
-# Configure Claude Code to use this MCP server (creates .claude/mcp.json)
+# Configure Claude Code to use this MCP server (creates .mcp.json)
 configure-claude-code: build
     @echo "Configuring Claude Code for this repository..."
-    @mkdir -p .claude
-    @echo '{' > .claude/mcp.json
-    @echo '  "mcpServers": {' >> .claude/mcp.json
-    @echo '    "dgx-spark": {' >> .claude/mcp.json
-    @echo '      "command": "node",' >> .claude/mcp.json
-    @echo '      "args": ["{{justfile_directory()}}/dist/index.js"]' >> .claude/mcp.json
-    @echo '    }' >> .claude/mcp.json
-    @echo '  }' >> .claude/mcp.json
-    @echo '}' >> .claude/mcp.json
-    @echo "✓ Claude Code configuration created at .claude/mcp.json"
+    @echo '{' > .mcp.json
+    @echo '  "mcpServers": {' >> .mcp.json
+    @echo '    "dgx-spark": {' >> .mcp.json
+    @echo '      "command": "node",' >> .mcp.json
+    @echo '      "args": ["{{justfile_directory()}}/dist/index.js"]' >> .mcp.json
+    @echo '    }' >> .mcp.json
+    @echo '  }' >> .mcp.json
+    @echo '}' >> .mcp.json
+    @echo "✓ Claude Code configuration created at .mcp.json"
     @echo ""
     @echo "Claude Code will now use this MCP server when launched from this repo!"
     @echo ""
-    @echo "To verify, restart Claude Code and check the MCP server status."
+    @echo "Note: You'll be prompted to approve the project-scoped MCP server."
+    @echo "To verify, restart Claude Code and approve the server when prompted."
 
 # Show current MCP configuration status
 mcp-status:
