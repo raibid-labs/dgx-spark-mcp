@@ -1,5 +1,5 @@
 {
-  "name": "@dgx/spark-mcp",
+  "name": "dgx-spark-mcp",
   "version": "0.1.0",
   "description": "Model Context Protocol server for DGX Spark optimization and hardware introspection",
   "main": "dist/index.js",
@@ -12,7 +12,8 @@
     "docs",
     "config",
     "README.md",
-    "LICENSE"
+    "LICENSE",
+    "CONTRIBUTING.md"
   ],
   "repository": {
     "type": "git",
@@ -43,7 +44,9 @@
     "test:coverage": "NODE_OPTIONS=--experimental-vm-modules jest --coverage",
     "test:integration": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch='**/tests/integration/**/*.test.ts'",
     "test:benchmark": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch='**/tests/benchmark/**/*.test.ts'",
-    "test:docs": "npm run build && npm run docs:build"
+    "test:docs": "npm run build && npm run docs:build",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "prepare": "npm run build"
   },
   "keywords": [
     "mcp",

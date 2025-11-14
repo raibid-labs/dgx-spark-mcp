@@ -5,6 +5,25 @@
 default:
     @just --list
 
+# Display detailed help information
+help:
+    @echo "DGX Spark MCP Server - Development Commands"
+    @echo ""
+    @echo "Quick Start:"
+    @echo "  just setup           - First-time setup for development"
+    @echo "  just dev             - Start development server with hot reload"
+    @echo "  just test            - Run tests"
+    @echo "  just build           - Build the project"
+    @echo ""
+    @echo "Common Workflows:"
+    @echo "  just pre-commit      - Run all pre-commit checks"
+    @echo "  just pre-push        - Run all pre-push checks"
+    @echo "  just link            - Link package globally for testing"
+    @echo ""
+    @echo "See 'just --list' for all available commands"
+    @echo ""
+    @echo "Documentation: https://github.com/raibid-labs/dgx-spark-mcp"
+
 # ============================================================================
 # Build Commands
 # ============================================================================
@@ -243,6 +262,38 @@ logs:
 logs-error:
     @echo "Tailing error logs..."
     tail -f logs/dgx-mcp-error.log
+
+# ============================================================================
+# Setup and Installation Commands
+# ============================================================================
+
+# First-time setup for development
+setup:
+    @echo "Setting up development environment..."
+    @echo "Installing dependencies..."
+    npm install
+    @echo "Building project..."
+    npm run build
+    @echo "Running tests to verify setup..."
+    MOCK_HARDWARE=true npm test
+    @echo "Setup complete! Run 'just dev' to start development."
+
+# Link package globally for local testing
+link: build
+    @echo "Linking package globally..."
+    npm link
+    @echo "Package linked! You can now use 'dgx-spark-mcp' command globally."
+
+# Unlink global package
+unlink:
+    @echo "Unlinking package..."
+    npm unlink -g dgx-spark-mcp
+    @echo "Package unlinked!"
+
+# Prepare package for publishing
+prepare-publish: clean check test-coverage build
+    @echo "Package is ready for publishing!"
+    @echo "Run 'npm publish' to publish to npm registry."
 
 # ============================================================================
 # Utility Commands

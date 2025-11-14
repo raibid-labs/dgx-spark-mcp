@@ -338,13 +338,55 @@ npm install
 
 ## Contributing
 
-1. Create a feature branch
-2. Make your changes
-3. Run tests and linting
-4. Submit a pull request
+We welcome contributions! Please see [CONTRIBUTING.md](../CONTRIBUTING.md) for detailed guidelines including:
+
+- Code of conduct
+- Development workflow
+- Coding standards
+- Testing guidelines
+- Pull request process
+
+### Quick Contribution Steps
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes with tests
+4. Run quality checks: `just pre-commit`
+5. Submit a pull request
+
+## Using Just (Recommended)
+
+This project includes a comprehensive [justfile](https://just.systems/) for common development tasks:
+
+```bash
+# First-time setup
+just setup
+
+# Show all commands
+just --list
+
+# Development workflow
+just dev             # Start development server
+just test            # Run tests
+just test-coverage   # Run tests with coverage
+just lint            # Run linter
+just format          # Format code
+
+# Quality checks
+just check           # Run all checks
+just pre-commit      # Pre-commit validation
+just pre-push        # Pre-push validation
+
+# Package management
+just link            # Link package globally
+just unlink          # Unlink package
+```
+
+See [JUSTFILE-REFERENCE.md](../JUSTFILE-REFERENCE.md) for all available commands.
 
 ## Support
 
 For issues and questions:
-- GitHub Issues: [github.com/raibid-labs/dgx-spark-mcp/issues]
-- Documentation: [/docs]
+- **GitHub Issues**: [github.com/raibid-labs/dgx-spark-mcp/issues](https://github.com/raibid-labs/dgx-spark-mcp/issues)
+- **GitHub Discussions**: [github.com/raibid-labs/dgx-spark-mcp/discussions](https://github.com/raibid-labs/dgx-spark-mcp/discussions)
+- **Documentation**: [docs/](../docs/)

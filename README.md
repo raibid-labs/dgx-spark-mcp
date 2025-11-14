@@ -1,109 +1,392 @@
-# DGX-Spark MCP Server
+# DGX Spark MCP Server
 
-> **Persistent hardware context and intelligent Spark optimization for Claude Code on NVIDIA DGX systems**
+<div align="center">
 
 [![CI](https://github.com/raibid-labs/dgx-spark-mcp/workflows/test/badge.svg)](https://github.com/raibid-labs/dgx-spark-mcp/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
 
-## Problem
+**Hardware-aware Spark optimization for NVIDIA DGX systems via Model Context Protocol**
 
-Claude Code forgets your DGX hardware specifications between sessions. This leads to:
-- ❌ Asking about GPU count/specs repeatedly
-- ❌ Generating sub-optimal Spark configurations
-- ❌ Missing DGX-specific optimization opportunities
-- ❌ No real-time GPU availability awareness
+[Features](#features) •
+[Installation](#installation) •
+[Configuration](#configuration) •
+[Usage](#usage) •
+[Documentation](#documentation) •
+[Contributing](#contributing)
 
-## Solution
+</div>
 
-An MCP (Model Context Protocol) server that provides:
-- ✅ **Persistent Hardware Context**: Always knows your DGX specs
-- ✅ **Real-Time GPU Status**: Check availability before suggesting jobs
-- ✅ **Intelligent Spark Configs**: Generate optimal configs for your hardware
-- ✅ **DGX Documentation**: Instant access to DGX Spark best practices
-- ✅ **Resource Estimation**: Predict job requirements accurately
+---
 
-## Quick Start
+## Overview
 
-This MCP server is designed to be used as part of the [raibid-labs/workspace](https://github.com/raibid-labs/workspace).
+DGX Spark MCP Server is a [Model Context Protocol](https://modelcontextprotocol.io) server that provides Claude with persistent context about your NVIDIA DGX hardware and intelligent Apache Spark optimization capabilities. Instead of repeatedly describing your GPU configuration, Claude automatically knows your hardware specs and can generate optimal Spark configurations for your workloads.
 
-### Installation via Workspace
+### The Problem
+
+When working with Claude on Spark optimization:
+- ❌ You must repeatedly describe your DGX hardware configuration
+- ❌ Claude cannot check real-time GPU availability
+- ❌ Generated Spark configs may not be optimal for your specific hardware
+- ❌ No access to DGX-specific best practices and tuning guides
+
+### The Solution
+
+An MCP server that gives Claude:
+- ✅ **Persistent Hardware Context** - Automatic detection and caching of DGX specs
+- ✅ **Real-Time GPU Monitoring** - Live availability and utilization data via `nvidia-smi`
+- ✅ **Intelligent Spark Optimization** - Generate optimal configs based on workload analysis
+- ✅ **Documentation Access** - Searchable knowledge base of DGX Spark best practices
+- ✅ **Resource Estimation** - Predict job requirements before execution
+
+## Features
+
+### MCP Resources
+
+Static context that Claude can read at any time:
+
+| Resource | Description |
+|----------|-------------|
+| `dgx://hardware/specs` | Complete DGX hardware specifications (GPUs, memory, CPUs) |
+| `dgx://hardware/topology` | GPU interconnect topology and NVLink configuration |
+| `dgx://system/capabilities` | System capabilities and supported features |
+| `dgx://docs/spark/{topic}` | DGX Spark documentation and best practices |
+
+### MCP Tools
+
+Dynamic operations that Claude can invoke:
+
+| Tool | Description |
+|------|-------------|
+| `check_gpu_availability` | Query current GPU utilization and availability |
+| `get_optimal_spark_config` | Generate Spark config optimized for workload and hardware |
+| `search_documentation` | Search DGX Spark documentation |
+| `estimate_resources` | Estimate resource requirements for a workload |
+| `get_system_health` | Check system health and status |
+| `validate_spark_config` | Validate Spark configuration against best practices |
+
+## Installation
+
+### Prerequisites
+
+- **Node.js** 18.0.0 or higher
+- **NVIDIA GPU Drivers** and `nvidia-smi` in PATH
+- **Operating System**: Linux (tested on Ubuntu 22.04)
+- **Hardware**: NVIDIA DGX or compatible GPU system
+
+### Option 1: Install from npm (Recommended)
 
 ```bash
-# Clone the workspace (includes this MCP server as a submodule)
-git clone --recursive https://github.com/raibid-labs/workspace.git
-cd workspace
-
-# Follow workspace setup instructions
-# The DGX Spark MCP server will be automatically configured
+npm install -g dgx-spark-mcp
 ```
 
-### Standalone Installation (Advanced)
-
-If you need to install this MCP server independently:
+### Option 2: Install from Source
 
 ```bash
-# Clone and build
+# Clone the repository
 git clone https://github.com/raibid-labs/dgx-spark-mcp.git
 cd dgx-spark-mcp
+
+# Install dependencies
 npm install
+
+# Build the project
 npm run build
 
-# Add to your Claude Code MCP settings:
+# Optionally link globally
+npm link
+```
+
+### Option 3: Run with npx
+
+```bash
+npx dgx-spark-mcp
+```
+
+## Configuration
+
+### Claude Desktop
+
+Add to your `claude_desktop_config.json`:
+
+```json
 {
   "mcpServers": {
     "dgx-spark": {
-      "command": "node",
-      "args": ["/path/to/dgx-spark-mcp/dist/index.js"]
+      "command": "dgx-spark-mcp"
     }
   }
 }
 ```
 
-### Usage in Claude Code
+**Configuration file locations:**
+- **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
+- **Linux**: `~/.config/Claude/claude_desktop_config.json`
 
-Once configured via workspace, you can ask Claude:
-- "What GPUs are available right now?"
-- "Generate optimal Spark config for 1TB ETL job"
-- "How should I configure executors for ML training?"
-- "Search DGX documentation for best practices"
+### Claude Code (CLI)
 
-## Features
+Add to your MCP settings configuration:
 
-### MCP Resources (Static Context)
-Claude Code can read these at any time:
+```json
+{
+  "mcpServers": {
+    "dgx-spark": {
+      "command": "dgx-spark-mcp"
+    }
+  }
+}
+```
 
-- **`dgx://hardware/specs`** - Complete hardware specifications
-- **`dgx://hardware/topology`** - GPU interconnect and system topology
-- **`dgx://system/capabilities`** - What your system can do
-- **`dgx://docs/spark/{topic}`** - DGX Spark documentation
+### Advanced Configuration
 
-### MCP Tools (Dynamic Operations)
-Claude Code can invoke these tools:
+Create a `config/local.json` file to customize server behavior:
 
-- **`check_gpu_availability`** - Current GPU utilization and availability
-- **`get_optimal_spark_config`** - Generate Spark config for workload
-- **`search_documentation`** - Search DGX Spark docs
-- **`estimate_resources`** - Estimate job resource requirements
-- **`get_system_health`** - Current system health status
+```json
+{
+  "mcp": {
+    "serverName": "dgx-spark-mcp",
+    "serverVersion": "0.1.0"
+  },
+  "logging": {
+    "level": "info",
+    "enableConsole": true,
+    "enableFile": true
+  },
+  "hardware": {
+    "cacheDuration": 3600000,
+    "enableGPUMonitoring": true
+  },
+  "docs": {
+    "indexPath": "docs/index.json",
+    "autoRebuild": true
+  }
+}
+```
+
+See [docs/configuration.md](docs/configuration.md) for all configuration options.
+
+## Usage
+
+Once configured, Claude will automatically have access to your DGX hardware context. You can ask questions like:
+
+### Hardware Queries
+
+```
+"What GPUs do I have available?"
+"Show me the current GPU utilization"
+"What's the NVLink topology of my system?"
+```
+
+### Spark Optimization
+
+```
+"Generate optimal Spark config for a 1TB ETL job"
+"How should I configure executors for ML training on 8 A100 GPUs?"
+"What's the best memory configuration for my hardware?"
+```
+
+### Documentation Search
+
+```
+"Search documentation for GPU memory tuning"
+"What are the best practices for shuffle operations on DGX?"
+"Show me examples of Spark Rapids configuration"
+```
+
+### Resource Planning
+
+```
+"Estimate resources needed for processing 5TB of Parquet files"
+"Can I run 4 concurrent jobs with my current hardware?"
+"What's the optimal partition size for my dataset?"
+```
 
 ## Architecture
 
 ```
-Claude Code ←→ MCP Protocol ←→ DGX-Spark MCP Server
-                                      ↓
-                         ┌────────────┼────────────┐
-                         ↓            ↓            ↓
-                  Hardware Detection  Intelligence  Documentation
-                  (nvidia-smi, /proc) (Spark Optimizer) (Search & Index)
-                         ↓
-                   DGX Hardware
+┌─────────────────┐
+│  Claude Desktop │
+│   or CLI        │
+└────────┬────────┘
+         │ MCP Protocol (stdio)
+         ▼
+┌─────────────────────────────────────┐
+│     DGX Spark MCP Server            │
+├─────────────────────────────────────┤
+│  ┌──────────┐  ┌────────────────┐  │
+│  │Resources │  │     Tools      │  │
+│  │  Layer   │  │    Layer       │  │
+│  └────┬─────┘  └────────┬───────┘  │
+│       │                 │           │
+│  ┌────▼─────────────────▼────────┐ │
+│  │   Intelligence Engine          │ │
+│  ├────────────────────────────────┤ │
+│  │  • Workload Analyzer           │ │
+│  │  • Config Generator            │ │
+│  │  • Resource Estimator          │ │
+│  │  • Best Practices Validator    │ │
+│  └────────────┬───────────────────┘ │
+│               │                     │
+│  ┌────────────▼───────────────────┐ │
+│  │   Hardware Detection Layer     │ │
+│  ├────────────────────────────────┤ │
+│  │  • nvidia-smi Integration      │ │
+│  │  • /proc filesystem parsing    │ │
+│  │  • Topology detection          │ │
+│  └────────────┬───────────────────┘ │
+└───────────────┼─────────────────────┘
+                │
+         ┌──────▼───────┐
+         │ DGX Hardware │
+         └──────────────┘
 ```
 
-See [Architecture Overview](docs/architecture/overview.md) for details.
+For detailed architecture information, see [docs/architecture/overview.md](docs/architecture/overview.md).
 
 ## Development
 
-This project was developed using parallel workstreams:
+### Quick Start
+
+```bash
+# Clone and install
+git clone https://github.com/raibid-labs/dgx-spark-mcp.git
+cd dgx-spark-mcp
+npm install
+
+# Run tests
+npm test
+
+# Build
+npm run build
+
+# Run in development mode with hot reload
+npm run dev
+```
+
+### Using the Justfile
+
+This project includes a comprehensive [justfile](https://just.systems/) for development tasks:
+
+```bash
+# Show all available commands
+just
+
+# Development workflow
+just build          # Build TypeScript
+just test           # Run tests
+just test-coverage  # Run tests with coverage
+just lint           # Run linter
+just format         # Format code
+
+# Quality checks
+just check          # Run all quality checks (lint, format-check, typecheck)
+just pre-commit     # Full pre-commit validation
+just pre-push       # Full pre-push validation
+
+# Docker
+just docker-build   # Build Docker image
+just docker-run-gpu # Run with GPU support
+
+# Documentation
+just docs-build     # Build documentation index
+just docs-search "query" # Search documentation
+```
+
+See [JUSTFILE-REFERENCE.md](JUSTFILE-REFERENCE.md) for all available commands.
+
+### Project Structure
+
+```
+dgx-spark-mcp/
+├── src/
+│   ├── server.ts           # MCP server implementation
+│   ├── hardware/           # Hardware detection
+│   ├── analyzers/          # Workload analysis
+│   ├── optimizers/         # Spark optimization
+│   ├── estimators/         # Resource estimation
+│   ├── validators/         # Config validation
+│   ├── resources/          # MCP resources
+│   ├── tools/              # MCP tools
+│   └── docs/               # Documentation system
+├── tests/
+│   ├── integration/        # Integration tests
+│   └── benchmarks/         # Performance tests
+├── docs/                   # Documentation
+├── config/                 # Configuration files
+└── scripts/                # Utility scripts
+```
+
+### Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+
+# Run integration tests
+npm run test:integration
+
+# Run with mocked hardware (for development without GPU)
+MOCK_HARDWARE=true npm test
+```
+
+### Code Quality
+
+```bash
+# Lint TypeScript files
+npm run lint
+
+# Auto-fix linting issues
+npm run lint:fix
+
+# Format code with Prettier
+npm run format
+
+# Check formatting
+npm run format:check
+
+# Type checking
+npm run typecheck
+```
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+
+- **[Architecture Overview](docs/architecture/overview.md)** - System design and components
+- **[Hardware Detection](docs/hardware-detection-api.md)** - GPU detection and monitoring
+- **[Spark Configuration](docs/spark/configuration.md)** - Spark optimization guide
+- **[Best Practices](docs/spark/best-practices.md)** - DGX Spark recommendations
+- **[API Documentation](docs/api/)** - Detailed API reference
+- **[Development Guide](docs/development.md)** - Contributing guidelines
+
+## Contributing
+
+We welcome contributions! This project is designed to eventually be contributed to the [dgx-spark-playbooks](https://github.com/NVIDIA/dgx-spark-playbooks) ecosystem.
+
+### Getting Started
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes
+4. Run tests: `npm test`
+5. Run quality checks: `just check`
+6. Commit your changes: `git commit -am 'Add your feature'`
+7. Push to the branch: `git push origin feature/your-feature`
+8. Submit a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+### Development Workflow
+
+This project follows a multi-workstream development approach:
 
 | Workstream | Status | Description |
 |------------|--------|-------------|
@@ -114,85 +397,64 @@ This project was developed using parallel workstreams:
 | WS5: DGX Spark Intelligence | ✅ Complete | Workload analysis and optimization |
 | WS6: Testing & DevOps | ✅ Complete | Comprehensive test suite and CI/CD |
 
-See completion reports in `docs/workstreams/` for detailed implementation notes.
+## Roadmap
 
-### Local Development
+- [ ] Support for additional GPU architectures (H100, Grace Hopper)
+- [ ] Integration with NVIDIA Rapids for GPU-accelerated Spark
+- [ ] Historical performance metrics and trend analysis
+- [ ] Auto-tuning based on job execution history
+- [ ] Multi-node DGX cluster support
+- [ ] Kubernetes integration for containerized Spark
+- [ ] Integration with dgx-spark-playbooks
 
-#### Within Workspace (Recommended)
+## Troubleshooting
 
+### Common Issues
+
+**nvidia-smi not found**
 ```bash
-# Navigate to workspace
-cd workspace/dgx-spark-mcp
-
-# Install dependencies
-npm install
-
-# Run tests
-npm test
-
-# Build
-npm run build
-
-# Use justfile for common tasks
-just build    # Build the project
-just test     # Run tests
-just lint     # Run linting
+# Ensure NVIDIA drivers are installed and nvidia-smi is in PATH
+which nvidia-smi
+nvidia-smi
 ```
 
-#### Standalone Development
-
+**Permission denied accessing GPU information**
 ```bash
-# Clone repository
-git clone https://github.com/raibid-labs/dgx-spark-mcp.git
-cd dgx-spark-mcp
+# Add user to video group (Linux)
+sudo usermod -a -G video $USER
+# Log out and back in
+```
 
-# Install dependencies
+**Module not found errors after installation**
+```bash
+# Rebuild the project
+npm run clean
 npm install
-
-# Run tests
-npm test
-
-# Build
 npm run build
 ```
 
-## Documentation
-
-- [Architecture Overview](docs/architecture/overview.md)
-- [Agent Coordination](docs/agents/coordination.md)
-- [Workstream Details](docs/workstreams/)
-- [API Documentation](docs/api/) _(coming soon)_
-
-## Requirements
-
-- **Node.js**: 20+
-- **NVIDIA Drivers**: Latest
-- **nvidia-smi**: Must be in PATH
-- **Operating System**: Linux (tested on Ubuntu 22.04)
-- **Hardware**: NVIDIA DGX or compatible system
-
-## Contributing
-
-This project uses multi-agent parallel development. See:
-- [Agent Coordination Guide](docs/agents/coordination.md)
-- [Development Workflow](docs/development.md) _(coming soon)_
+See [docs/spark/troubleshooting.md](docs/spark/troubleshooting.md) for more solutions.
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) file
+MIT License - see [LICENSE](LICENSE) file for details.
 
-## Project Status
+## Acknowledgments
 
-✅ **Production Ready**
+- Built with [Model Context Protocol SDK](https://github.com/modelcontextprotocol/typescript-sdk)
+- Inspired by [NVIDIA DGX Spark Playbooks](https://github.com/NVIDIA/dgx-spark-playbooks)
+- Hardware detection powered by `nvidia-smi` and Linux `/proc` filesystem
 
-All core workstreams completed:
-- ✅ WS1: MCP Server Foundation
-- ✅ WS2: Hardware Detection System
-- ✅ WS3: MCP Resources & Tools Integration
-- ✅ WS4: Documentation System
-- ✅ WS5: DGX Spark Intelligence Engine
-- ✅ WS6: Testing & DevOps Infrastructure
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/raibid-labs/dgx-spark-mcp/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/raibid-labs/dgx-spark-mcp/discussions)
+- **Documentation**: [docs/](docs/)
 
 ---
 
-**Part of**: [raibid-labs/workspace](https://github.com/raibid-labs/workspace) - An integrated development environment for DGX systems
+<div align="center">
+
+**Built with ❤️ for the DGX and Spark community**
+
+</div>
