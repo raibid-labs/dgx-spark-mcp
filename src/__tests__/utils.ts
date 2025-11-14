@@ -13,12 +13,10 @@ import type { Network } from '../types/network.js';
  */
 export function createMockGPU(overrides?: Partial<GPU>): GPU {
   return {
-    index: 0,
+    id: 0,
     uuid: 'GPU-12345678-1234-1234-1234-123456789012',
     name: 'NVIDIA A100-SXM4-80GB',
-    architecture: 'Ampere',
-    cudaCores: 6912,
-    computeCapability: '8.0',
+    busId: '0000:07:00.0',
     memory: {
       total: 85899345920, // 80GB
       free: 85899345920,
@@ -27,34 +25,30 @@ export function createMockGPU(overrides?: Partial<GPU>): GPU {
     utilization: {
       gpu: 0,
       memory: 0,
-      encoder: 0,
-      decoder: 0,
     },
-    temperature: 35,
-    powerDraw: 50,
-    powerLimit: 400,
-    clockSpeeds: {
+    temperature: {
+      current: 35,
+      max: 90,
+      slowdown: 85,
+      shutdown: 95,
+    },
+    power: {
+      current: 50,
+      limit: 400,
+      default: 400,
+    },
+    clocks: {
       graphics: 1410,
       sm: 1410,
       memory: 1215,
       video: 1275,
     },
-    pciInfo: {
-      bus: '0000:07:00.0',
-      deviceId: '20B010DE',
-      generation: 4,
-      linkWidth: 16,
+    computeCapability: {
+      major: 8,
+      minor: 0,
     },
-    nvlinkInfo: {
-      enabled: true,
-      links: 12,
-      bandwidthPerLink: 600,
-      totalBandwidth: 7200,
-    },
-    mig: {
-      enabled: false,
-      instances: [],
-    },
+    driverVersion: '535.104.12',
+    cudaVersion: '12.2',
     ...overrides,
   };
 }
@@ -64,35 +58,33 @@ export function createMockGPU(overrides?: Partial<GPU>): GPU {
  */
 export function createMockCPU(overrides?: Partial<CPU>): CPU {
   return {
-    model: 'AMD EPYC 7742 64-Core Processor',
     vendor: 'AMD',
+    modelName: 'AMD EPYC 7742 64-Core Processor',
     architecture: 'x86_64',
     cores: {
       physical: 64,
       logical: 128,
     },
+    threads: 128,
+    sockets: 2,
     frequency: {
       current: 2250,
       min: 1500,
       max: 3400,
     },
-    cacheSize: {
+    cache: {
       l1d: 2097152,
       l1i: 2097152,
       l2: 33554432,
       l3: 268435456,
     },
-    features: [
+    flags: [
       'fpu', 'vme', 'de', 'pse', 'tsc', 'msr', 'pae', 'mce',
       'cx8', 'apic', 'sep', 'mtrr', 'pge', 'mca', 'cmov',
       'pat', 'pse36', 'clflush', 'mmx', 'fxsr', 'sse', 'sse2',
       'ht', 'syscall', 'nx', 'mmxext', 'pdpe1gb', 'rdtscp',
       'lm', 'avx', 'avx2',
     ],
-    numa: {
-      nodes: 2,
-      cpusPerNode: 64,
-    },
     ...overrides,
   };
 }
@@ -121,29 +113,31 @@ export function createMockMemory(overrides?: Partial<MemoryInfo>): MemoryInfo {
  */
 export function createMockStorage(overrides?: Partial<Storage>): Storage {
   return {
-    devices: [
+    blockDevices: [
       {
         name: '/dev/nvme0n1',
         type: 'nvme',
         size: 3840755982336, // 3.5TB
         model: 'Samsung SSD 980 PRO 4TB',
         serial: 'S5GXNX0T123456',
-        mountPoint: '/',
-        filesystem: 'ext4',
-        used: 1073741824000,
-        available: 2767014158336,
+        mountpoint: '/',
+        fstype: 'ext4',
       },
     ],
-    mounts: [
+    mountPoints: [
       {
-        mountPoint: '/',
         device: '/dev/nvme0n1p2',
-        filesystem: 'ext4',
+        mountpoint: '/',
+        fstype: 'ext4',
         size: 3840755982336,
         used: 1073741824000,
         available: 2767014158336,
+        usedPercent: 27.9,
       },
     ],
+    totalCapacity: 3840755982336,
+    totalUsed: 1073741824000,
+    totalAvailable: 2767014158336,
     ...overrides,
   };
 }
@@ -160,9 +154,9 @@ export function createMockNetwork(overrides?: Partial<Network>): Network {
         speed: 100000, // 100Gbps
         mtu: 9000,
         state: 'up',
-        macAddress: '00:1a:2b:3c:4d:5e',
-        ipv4Address: '10.0.0.100',
-        ipv6Address: 'fe80::21a:2bff:fe3c:4d5e',
+        mac: '00:1a:2b:3c:4d:5e',
+        ipv4: ['10.0.0.100'],
+        ipv6: ['fe80::21a:2bff:fe3c:4d5e'],
       },
       {
         name: 'ib0',
@@ -170,25 +164,13 @@ export function createMockNetwork(overrides?: Partial<Network>): Network {
         speed: 200000, // 200Gbps
         mtu: 4092,
         state: 'up',
-        macAddress: '00:02:c9:01:23:45',
-        ipv4Address: '192.168.1.100',
-        ipv6Address: 'fe80::202:c9ff:fe01:2345',
+        mac: '00:02:c9:01:23:45',
+        ipv4: ['192.168.1.100'],
+        ipv6: ['fe80::202:c9ff:fe01:2345'],
       },
     ],
-    rdma: {
-      enabled: true,
-      devices: [
-        {
-          name: 'mlx5_0',
-          type: 'ConnectX-7',
-          portState: 'active',
-          linkLayer: 'InfiniBand',
-          maxMtu: 4096,
-          activeSpeed: 200,
-          activeWidth: 4,
-        },
-      ],
-    },
+    totalInterfaces: 2,
+    activeInterfaces: 2,
     ...overrides,
   };
 }
@@ -199,10 +181,10 @@ export function createMockNetwork(overrides?: Partial<Network>): Network {
 export function createMockHardwareTopology() {
   return {
     gpus: [
-      createMockGPU({ index: 0 }),
-      createMockGPU({ index: 1, uuid: 'GPU-12345678-1234-1234-1234-123456789013' }),
-      createMockGPU({ index: 2, uuid: 'GPU-12345678-1234-1234-1234-123456789014' }),
-      createMockGPU({ index: 3, uuid: 'GPU-12345678-1234-1234-1234-123456789015' }),
+      createMockGPU({ id: 0 }),
+      createMockGPU({ id: 1, uuid: 'GPU-12345678-1234-1234-1234-123456789013' }),
+      createMockGPU({ id: 2, uuid: 'GPU-12345678-1234-1234-1234-123456789014' }),
+      createMockGPU({ id: 3, uuid: 'GPU-12345678-1234-1234-1234-123456789015' }),
     ],
     cpu: createMockCPU(),
     memory: createMockMemory(),
@@ -247,36 +229,4 @@ export function createCallTracker<T extends (...args: any[]) => any>() {
     lastCall: () => calls[calls.length - 1],
     reset: () => calls.splice(0, calls.length),
   };
-}
-
-/**
- * Mock environment variables for a test
- */
-export function withEnv<T>(
-  envVars: Record<string, string | undefined>,
-  fn: () => T
-): T {
-  const originalEnv = { ...process.env };
-  Object.assign(process.env, envVars);
-  try {
-    return fn();
-  } finally {
-    process.env = originalEnv;
-  }
-}
-
-/**
- * Mock environment variables for an async test
- */
-export async function withEnvAsync<T>(
-  envVars: Record<string, string | undefined>,
-  fn: () => Promise<T>
-): Promise<T> {
-  const originalEnv = { ...process.env };
-  Object.assign(process.env, envVars);
-  try {
-    return await fn();
-  } finally {
-    process.env = originalEnv;
-  }
 }
