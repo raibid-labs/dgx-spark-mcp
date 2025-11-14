@@ -40,7 +40,7 @@ function generateDocId(filePath: string): string {
   // Use relative path from docs directory as ID
   const normalized = filePath.replace(/\\/g, '/');
   const parts = normalized.split('/docs/');
-  if (parts.length > 1) {
+  if (parts.length > 1 && parts[1]) {
     return parts[1].replace(/\.md$/, '');
   }
   return path.basename(filePath, '.md');
@@ -59,7 +59,7 @@ export function extractHeadings(markdown: string): DocumentHeading[] {
 
     // Match ATX-style headings (# Heading)
     const atxMatch = line.match(/^(#{1,6})\s+(.+)$/);
-    if (atxMatch) {
+    if (atxMatch && atxMatch[1] && atxMatch[2]) {
       const level = atxMatch[1].length;
       const text = atxMatch[2].trim();
       const id = generateHeadingId(text);
@@ -75,13 +75,13 @@ export function extractHeadings(markdown: string): DocumentHeading[] {
     // Match Setext-style headings (Heading\n====)
     if (lineNumber < lines.length) {
       const nextLine = lines[lineNumber];
-      if (/^=+$/.test(nextLine)) {
+      if (nextLine && /^=+$/.test(nextLine)) {
         headings.push({
           level: 1,
           text: line.trim(),
           id: generateHeadingId(line.trim()),
         });
-      } else if (/^-+$/.test(nextLine)) {
+      } else if (nextLine && /^-+$/.test(nextLine)) {
         headings.push({
           level: 2,
           text: line.trim(),
@@ -116,8 +116,10 @@ function buildHeadingHierarchy(flatHeadings: DocumentHeading[]): DocumentHeading
 
   for (const heading of flatHeadings) {
     // Find parent heading
-    while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
+    let stackTop = stack[stack.length - 1];
+    while (stack.length > 0 && stackTop && stackTop.level >= heading.level) {
       stack.pop();
+      stackTop = stack[stack.length - 1];
     }
 
     if (stack.length === 0) {
@@ -126,10 +128,12 @@ function buildHeadingHierarchy(flatHeadings: DocumentHeading[]): DocumentHeading
     } else {
       // Child heading
       const parent = stack[stack.length - 1];
-      if (!parent.children) {
-        parent.children = [];
+      if (parent) {
+        if (!parent.children) {
+          parent.children = [];
+        }
+        parent.children.push(heading);
       }
-      parent.children.push(heading);
     }
 
     stack.push(heading);
@@ -147,10 +151,10 @@ export function extractCodeBlocks(markdown: string): CodeBlock[] {
   let inCodeBlock = false;
   let currentBlock: Partial<CodeBlock> = {};
   let blockLines: string[] = [];
-  let lineStart = 0;
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (!line) continue;
 
     // Check for fenced code block
     const fenceMatch = line.match(/^```(\w+)?/);
@@ -196,6 +200,7 @@ export function extractLinks(markdown: string): DocumentLink[] {
   while ((match = linkRegex.exec(markdown)) !== null) {
     const text = match[1];
     const url = match[2];
+    if (!text || !url) continue;
     const isExternal = /^https?:\/\//.test(url);
 
     links.push({

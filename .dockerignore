@@ -1,0 +1,70 @@
+# Git
+.git
+.gitignore
+.github
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+dist
+coverage
+.nyc_output
+
+# Logs
+logs
+*.log
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+__tests__
+__mocks__
+tests
+
+# Documentation
+docs
+*.md
+!README.md
+
+# CI/CD
+.github
+.gitlab-ci.yml
+
+# Deployment
+deploy
+scripts
+
+# Data
+data
+*.json.bak
+*.db
+*.sqlite
+
+# Temporary files
+tmp
+temp
+*.tmp
+
+# Archives
+*.tar.gz
+*.zip
+*.rar

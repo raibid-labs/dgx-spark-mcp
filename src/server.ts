@@ -11,6 +11,8 @@ import type { Config } from './config/schema.js';
 import { LifecycleManager } from './lifecycle/index.js';
 import { HealthManager, HealthStatus } from './health/index.js';
 import type { DGXMCPServer } from './types/mcp.js';
+import { listAllResources, readResource } from './resources/index.js';
+import { listAllTools, callTool } from './tools/index.js';
 
 /**
  * DGX Spark MCP Server
@@ -130,87 +132,65 @@ export class DGXSparkMCPServer {
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
       this.logger.debug('Received list_resources request');
 
-      return {
-        resources: [
-          {
-            uri: 'dgx://server/info',
-            name: 'Server Information',
-            description: 'Basic server information and capabilities',
-            mimeType: 'application/json',
-          },
-        ],
-      };
+      try {
+        const resources = await listAllResources();
+        return { resources };
+      } catch (error) {
+        this.logger.error('Failed to list resources', error as Error);
+        throw error;
+      }
     });
 
     // Read resource handler
     this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-      this.logger.debug('Received read_resource request', { uri: request.params.uri });
-
       const uri = request.params.uri;
+      this.logger.debug('Received read_resource request', { uri });
 
-      if (uri === 'dgx://server/info') {
-        return {
-          contents: [
-            {
-              uri,
-              mimeType: 'application/json',
-              text: JSON.stringify(
-                {
-                  name: this.config.mcp.serverName,
-                  version: this.config.mcp.serverVersion,
-                  capabilities: {
-                    resources: true,
-                    tools: true,
-                  },
-                },
-                null,
-                2
-              ),
-            },
-          ],
-        };
+      try {
+        const contents = await readResource(uri);
+        return { contents };
+      } catch (error) {
+        this.logger.error('Failed to read resource', error as Error, { uri });
+        throw new Error(`Failed to read resource ${uri}: ${error instanceof Error ? error.message : 'Unknown error'}`);
       }
-
-      throw new Error(`Unknown resource: ${uri}`);
     });
 
     // List tools handler
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       this.logger.debug('Received list_tools request');
 
-      return {
-        tools: [
-          {
-            name: 'health_check',
-            description: 'Check server health status',
-            inputSchema: {
-              type: 'object',
-              properties: {},
-            },
-          },
-        ],
-      };
+      try {
+        const tools = listAllTools();
+        return { tools };
+      } catch (error) {
+        this.logger.error('Failed to list tools', error as Error);
+        throw error;
+      }
     });
 
     // Call tool handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      this.logger.debug('Received call_tool request', { tool: request.params.name });
-
       const toolName = request.params.name;
+      const args = request.params.arguments;
 
-      if (toolName === 'health_check') {
-        const health = await this.health.check();
+      this.logger.debug('Received call_tool request', { tool: toolName, args });
+
+      try {
+        const result = await callTool(toolName, args);
+        return result;
+      } catch (error) {
+        this.logger.error('Failed to call tool', error as Error, { tool: toolName });
         return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify(health, null, 2),
-            },
-          ],
+          content: [{
+            type: 'text' as const,
+            text: JSON.stringify({
+              error: `Failed to execute tool ${toolName}`,
+              message: error instanceof Error ? error.message : 'Unknown error',
+            }, null, 2),
+          }],
+          isError: true,
         };
       }
-
-      throw new Error(`Unknown tool: ${toolName}`);
     });
   }
 

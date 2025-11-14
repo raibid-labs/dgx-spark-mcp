@@ -20,8 +20,8 @@ export function extract(markdown: string): { metadata: DocumentMetadata; content
     };
   }
 
-  const yamlContent = match[1];
-  const markdownContent = match[2];
+  const yamlContent = match[1] || '';
+  const markdownContent = match[2] || markdown;
 
   const metadata = parseYaml(yamlContent);
 
@@ -44,6 +44,7 @@ function parseYaml(yaml: string): DocumentMetadata {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
+    if (!line) continue;
     const trimmedLine = line.trim();
 
     // Skip empty lines and comments
@@ -79,12 +80,17 @@ function parseYaml(yaml: string): DocumentMetadata {
       const arrayItems: string[] = [];
       let j = i + 1;
       while (j < lines.length) {
-        const nextLine = lines[j].trim();
-        if (nextLine.startsWith('-')) {
-          arrayItems.push(nextLine.substring(1).trim());
+        const nextLine = lines[j];
+        if (!nextLine) {
+          j++;
+          continue;
+        }
+        const trimmedNextLine = nextLine.trim();
+        if (trimmedNextLine.startsWith('-')) {
+          arrayItems.push(trimmedNextLine.substring(1).trim());
           i = j;
           j++;
-        } else if (nextLine === '' || nextLine.startsWith('#')) {
+        } else if (trimmedNextLine === '' || trimmedNextLine.startsWith('#')) {
           j++;
         } else {
           break;
@@ -137,7 +143,7 @@ function parseYaml(yaml: string): DocumentMetadata {
 function setMetadataValue(metadata: DocumentMetadata, key: string, value: string | string[]): void {
   switch (key) {
     case 'title':
-      metadata.title = Array.isArray(value) ? value[0] : value;
+      metadata.title = Array.isArray(value) ? (value[0] || 'Untitled') : value;
       break;
     case 'description':
       metadata.description = Array.isArray(value) ? value.join(' ') : value;

@@ -5,11 +5,14 @@
  */
 
 import { DocsApiResponse, SearchOptions } from '../types/docs.js';
-import { getIndex, buildIndex, loadIndex } from './indexer.js';
-import { search, initializeSearch } from './search.js';
+import { getIndex, buildIndex } from './indexer.js';
+import { search as searchDocs, initializeSearch as initSearch } from './search.js';
 import { parseMarkdown } from './parser.js';
 import { fetchExternalDoc, getExternalSources } from './fetcher.js';
 import { getCache } from './cache.js';
+
+// Re-export for external use
+export { buildIndex, initSearch as initializeSearch, searchDocs as search };
 
 /**
  * Initialize documentation system
@@ -21,7 +24,7 @@ export async function initialize(docsDir: string = 'docs'): Promise<DocsApiRespo
     await index.rebuildIfNeeded(docsDir, 3600000); // 1 hour
 
     // Initialize search engine
-    await initializeSearch();
+    await initSearch();
 
     const stats = index.getStats();
 
@@ -48,7 +51,7 @@ export async function searchDocumentation(
   options: Partial<SearchOptions> = {}
 ): Promise<DocsApiResponse> {
   try {
-    const results = await search(query, options);
+    const results = await searchDocs(query, options);
 
     return {
       success: true,
@@ -256,7 +259,7 @@ export async function getStats(): Promise<DocsApiResponse> {
 export async function rebuildIndex(docsDir: string = 'docs'): Promise<DocsApiResponse> {
   try {
     const stats = await buildIndex(docsDir);
-    await initializeSearch();
+    await initSearch();
 
     return {
       success: true,

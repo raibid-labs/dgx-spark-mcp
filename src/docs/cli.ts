@@ -37,11 +37,11 @@ async function main() {
         console.log(`Searching for: "${args.join(' ')}"\n`);
         await initializeSearch();
         const results = await search(args.join(' '));
-        if (results.data.length === 0) {
+        if (results.length === 0) {
           console.log('No results found.');
         } else {
-          console.log(`Found ${results.data.length} results:\n`);
-          results.data.forEach((result: any, index: number) => {
+          console.log(`Found ${results.length} results:\n`);
+          results.forEach((result: any, index: number) => {
             console.log(`${index + 1}. ${result.title} (score: ${result.score.toFixed(2)})`);
             console.log(`   Category: ${result.category}`);
             console.log(`   ${result.excerpt}`);
@@ -51,7 +51,7 @@ async function main() {
         break;
 
       case 'get':
-        if (args.length === 0) {
+        if (args.length === 0 || !args[0]) {
           console.error('Usage: cli.ts get <doc-id>');
           process.exit(1);
         }

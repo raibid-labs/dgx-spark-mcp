@@ -66,7 +66,7 @@ export function htmlToMarkdown(html: string): string {
   });
 
   // Convert blockquotes
-  markdown = markdown.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, (match, content) => {
+  markdown = markdown.replace(/<blockquote[^>]*>(.*?)<\/blockquote>/gis, (_match, content) => {
     const lines = content.trim().split('\n');
     return lines.map((line: string) => `> ${line.trim()}`).join('\n') + '\n\n';
   });
@@ -115,11 +115,11 @@ function decodeHtmlEntities(text: string): string {
   }
 
   // Decode numeric entities
-  decoded = decoded.replace(/&#(\d+);/g, (match, dec) => {
+  decoded = decoded.replace(/&#(\d+);/g, (_match, dec) => {
     return String.fromCharCode(parseInt(dec, 10));
   });
 
-  decoded = decoded.replace(/&#x([0-9a-f]+);/gi, (match, hex) => {
+  decoded = decoded.replace(/&#x([0-9a-f]+);/gi, (_match, hex) => {
     return String.fromCharCode(parseInt(hex, 16));
   });
 

@@ -6,7 +6,6 @@
 
 import {
   initialize,
-  getDocument,
   getDocumentContent,
   listAllDocs,
   searchDocumentation,
@@ -60,10 +59,10 @@ export async function loadDocumentationResource(uri: string): Promise<{
   const pathParts = url.pathname.split('/').filter(p => p);
   let docId: string;
 
-  if (pathParts.length === 1) {
+  if (pathParts.length === 1 && pathParts[0]) {
     // dgx://docs/{id}
     docId = pathParts[0];
-  } else if (pathParts.length === 2 && pathParts[0] === 'docs') {
+  } else if (pathParts.length === 2 && pathParts[0] === 'docs' && pathParts[1]) {
     // dgx://docs/{id}
     docId = pathParts[1];
   } else if (pathParts.length >= 2) {
