@@ -16,6 +16,7 @@ help:
     @echo "  just build                  - Build the project"
     @echo ""
     @echo "MCP Configuration:"
+    @echo "  just configure-claude-code  - Configure Claude Code for this repo"
     @echo "  just generate-mcp-config    - Show MCP config for Claude Desktop"
     @echo "  just save-mcp-config        - Save MCP config to mcp-config.json"
     @echo "  just install-mcp-config     - Auto-install config (macOS/Linux)"
@@ -364,6 +365,24 @@ install-mcp-config: build
         echo "Restart Claude Desktop to use the DGX Spark MCP server"
     fi
 
+# Configure Claude Code to use this MCP server (creates .claude/mcp.json)
+configure-claude-code: build
+    @echo "Configuring Claude Code for this repository..."
+    @mkdir -p .claude
+    @echo '{' > .claude/mcp.json
+    @echo '  "mcpServers": {' >> .claude/mcp.json
+    @echo '    "dgx-spark": {' >> .claude/mcp.json
+    @echo '      "command": "node",' >> .claude/mcp.json
+    @echo '      "args": ["{{justfile_directory()}}/dist/index.js"]' >> .claude/mcp.json
+    @echo '    }' >> .claude/mcp.json
+    @echo '  }' >> .claude/mcp.json
+    @echo '}' >> .claude/mcp.json
+    @echo "✓ Claude Code configuration created at .claude/mcp.json"
+    @echo ""
+    @echo "Claude Code will now use this MCP server when launched from this repo!"
+    @echo ""
+    @echo "To verify, restart Claude Code and check the MCP server status."
+
 # Show current MCP configuration status
 mcp-status:
     @echo "MCP Server Status:"
@@ -376,10 +395,11 @@ mcp-status:
         echo "  Status:  ✗ Not built (run 'just build')"; \
     fi
     @echo ""
-    @echo "To configure Claude Desktop, run:"
-    @echo "  just generate-mcp-config    # Show config to copy"
+    @echo "To configure Claude, run:"
+    @echo "  just configure-claude-code  # Auto-configure Claude Code for this repo"
+    @echo "  just generate-mcp-config    # Show config for Claude Desktop"
     @echo "  just save-mcp-config        # Save config to file"
-    @echo "  just install-mcp-config     # Auto-install (macOS/Linux)"
+    @echo "  just install-mcp-config     # Auto-install to Claude Desktop (macOS/Linux)"
     @echo ""
 
 # ============================================================================
