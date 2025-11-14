@@ -24,25 +24,48 @@ An MCP (Model Context Protocol) server that provides:
 
 ## Quick Start
 
-```bash
-# Install
-npm install -g dgx-spark-mcp
+This MCP server is designed to be used as part of the [raibid-labs/workspace](https://github.com/raibid-labs/workspace).
 
-# Configure Claude Code
-# Add to your MCP settings:
+### Installation via Workspace
+
+```bash
+# Clone the workspace (includes this MCP server as a submodule)
+git clone --recursive https://github.com/raibid-labs/workspace.git
+cd workspace
+
+# Follow workspace setup instructions
+# The DGX Spark MCP server will be automatically configured
+```
+
+### Standalone Installation (Advanced)
+
+If you need to install this MCP server independently:
+
+```bash
+# Clone and build
+git clone https://github.com/raibid-labs/dgx-spark-mcp.git
+cd dgx-spark-mcp
+npm install
+npm run build
+
+# Add to your Claude Code MCP settings:
 {
   "mcpServers": {
     "dgx-spark": {
-      "command": "dgx-spark-mcp"
+      "command": "node",
+      "args": ["/path/to/dgx-spark-mcp/dist/index.js"]
     }
   }
 }
-
-# Use in Claude Code
-# "What GPUs are available right now?"
-# "Generate optimal Spark config for 1TB ETL job"
-# "How should I configure executors for ML training?"
 ```
+
+### Usage in Claude Code
+
+Once configured via workspace, you can ask Claude:
+- "What GPUs are available right now?"
+- "Generate optimal Spark config for 1TB ETL job"
+- "How should I configure executors for ML training?"
+- "Search DGX documentation for best practices"
 
 ## Features
 
@@ -80,20 +103,43 @@ See [Architecture Overview](docs/architecture/overview.md) for details.
 
 ## Development
 
-This project uses parallel workstreams for rapid development:
+This project was developed using parallel workstreams:
 
-| Workstream | Status | Agent | Issue |
-|------------|--------|-------|-------|
-| WS1: MCP Server Foundation | 🟡 Not Started | backend-architect | [#1](https://github.com/raibid-labs/dgx-spark-mcp/issues/1) |
-| WS2: Hardware Detection | 🟡 Not Started | infrastructure-maintainer | [#2](https://github.com/raibid-labs/dgx-spark-mcp/issues/2) |
-| WS3: MCP Resources & Tools | 🟡 Not Started | ai-engineer | [#3](https://github.com/raibid-labs/dgx-spark-mcp/issues/3) |
-| WS4: Documentation System | 🟡 Not Started | frontend-developer | [#4](https://github.com/raibid-labs/dgx-spark-mcp/issues/4) |
-| WS5: DGX Spark Intelligence | 🟡 Not Started | ai-engineer | [#5](https://github.com/raibid-labs/dgx-spark-mcp/issues/5) |
-| WS6: Testing & DevOps | 🟡 Not Started | test-writer-fixer | [#6](https://github.com/raibid-labs/dgx-spark-mcp/issues/6) |
+| Workstream | Status | Description |
+|------------|--------|-------------|
+| WS1: MCP Server Foundation | ✅ Complete | Core MCP protocol implementation |
+| WS2: Hardware Detection | ✅ Complete | GPU and system introspection |
+| WS3: MCP Resources & Tools | ✅ Complete | Resource and tool integration |
+| WS4: Documentation System | ✅ Complete | Searchable docs with indexing |
+| WS5: DGX Spark Intelligence | ✅ Complete | Workload analysis and optimization |
+| WS6: Testing & DevOps | ✅ Complete | Comprehensive test suite and CI/CD |
 
-See [Agent Coordination Guide](docs/agents/coordination.md) for multi-agent development patterns.
+See completion reports in `docs/workstreams/` for detailed implementation notes.
 
 ### Local Development
+
+#### Within Workspace (Recommended)
+
+```bash
+# Navigate to workspace
+cd workspace/dgx-spark-mcp
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build
+npm run build
+
+# Use justfile for common tasks
+just build    # Build the project
+just test     # Run tests
+just lint     # Run linting
+```
+
+#### Standalone Development
 
 ```bash
 # Clone repository
@@ -102,9 +148,6 @@ cd dgx-spark-mcp
 
 # Install dependencies
 npm install
-
-# Run development server
-npm run dev
 
 # Run tests
 npm test
@@ -140,10 +183,16 @@ MIT License - see [LICENSE](LICENSE) file
 
 ## Project Status
 
-🏗️ **Active Development**
+✅ **Production Ready**
 
-Currently implementing foundation workstreams (WS1, WS2, WS4) in parallel.
+All core workstreams completed:
+- ✅ WS1: MCP Server Foundation
+- ✅ WS2: Hardware Detection System
+- ✅ WS3: MCP Resources & Tools Integration
+- ✅ WS4: Documentation System
+- ✅ WS5: DGX Spark Intelligence Engine
+- ✅ WS6: Testing & DevOps Infrastructure
 
 ---
 
-**Next Steps**: See workstream issues for detailed implementation plans.
+**Part of**: [raibid-labs/workspace](https://github.com/raibid-labs/workspace) - An integrated development environment for DGX systems
