@@ -1,0 +1,50 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug MCP Server",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "tsx",
+      "runtimeArgs": ["--inspect-brk", "src/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development",
+        "DGX_MCP_LOG_LEVEL": "debug",
+        "DGX_MCP_LOG_FORMAT": "pretty"
+      }
+    },
+    {
+      "name": "Debug MCP Server (stdio)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "tsx",
+      "runtimeArgs": ["src/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development",
+        "DGX_MCP_LOG_LEVEL": "debug",
+        "DGX_MCP_LOG_FORMAT": "pretty",
+        "DGX_MCP_TRANSPORT": "stdio"
+      }
+    },
+    {
+      "name": "Build and Debug",
+      "type": "node",
+      "request": "launch",
+      "program": "${workspaceFolder}/dist/index.js",
+      "preLaunchTask": "npm: build",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development",
+        "DGX_MCP_LOG_LEVEL": "debug"
+      }
+    }
+  ]
+}
