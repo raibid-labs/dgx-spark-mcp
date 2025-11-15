@@ -2,29 +2,32 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches:
+      - main
 
 permissions:
   contents: write
-  packages: write
+  issues: write
+  pull-requests: write
+  id-token: write
 
 jobs:
   release:
-    name: Create Release
+    name: Release
     runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          cache: 'npm'
+          node-version: '18'
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
@@ -32,135 +35,18 @@ jobs:
 
       - name: Run tests
         run: npm test
-        env:
-          MOCK_HARDWARE: true
 
-      - name: Build project
+      - name: Build
         run: npm run build
 
-      - name: Create release archive
+      - name: Verify package
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          tar -czf dgx-spark-mcp-${VERSION}.tar.gz \
-            dist/ \
-            package.json \
-            package-lock.json \
-            README.md \
-            LICENSE \
-            config/ \
-            scripts/ \
-            deploy/
+          npm pack
+          tar -tzf dgx-spark-mcp-*.tgz
 
-      - name: Generate changelog
-        id: changelog
-        run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-
-          # Generate changelog from commits
-          PREVIOUS_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1) 2>/dev/null || echo "")
-          if [ -n "$PREVIOUS_TAG" ]; then
-            CHANGELOG=$(git log ${PREVIOUS_TAG}..HEAD --pretty=format:"- %s (%h)" --no-merges)
-          else
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)" --no-merges)
-          fi
-
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          name: Release ${{ steps.changelog.outputs.version }}
-          body: |
-            ## Changes in this release
-
-            ${{ steps.changelog.outputs.changelog }}
-
-            ## Installation
-
-            ### NPM
-            ```bash
-            npm install @dgx/spark-mcp@${{ steps.changelog.outputs.version }}
-            ```
-
-            ### Docker
-            ```bash
-            docker pull ghcr.io/${{ github.repository }}:${{ steps.changelog.outputs.version }}
-            ```
-
-            ### Manual Installation
-            Download and extract the archive, then run:
-            ```bash
-            ./scripts/install.sh
-            ```
-
-            ## Verification
-            ```bash
-            # Verify installation
-            dgx-spark-mcp --version
-
-            # Run health check
-            curl http://localhost:3000/health
-            ```
-          files: |
-            dgx-spark-mcp-${{ steps.changelog.outputs.version }}.tar.gz
-          draft: false
-          prerelease: ${{ contains(github.ref, '-rc') || contains(github.ref, '-beta') || contains(github.ref, '-alpha') }}
-
-      - name: Publish to NPM
-        if: "!contains(github.ref, '-rc') && !contains(github.ref, '-beta') && !contains(github.ref, '-alpha')"
-        run: npm publish --access public
+      - name: Release
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-  docker-release:
-    name: Release Docker Image
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v3
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-        if: secrets.DOCKERHUB_TOKEN != ''
-
-      - name: Extract version from tag
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: |
-            ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          labels: |
-            org.opencontainers.image.title=DGX Spark MCP Server
-            org.opencontainers.image.description=Model Context Protocol server for DGX Spark optimization
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
-            org.opencontainers.image.revision=${{ github.sha }}
+        run: npx semantic-release

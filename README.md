@@ -26,6 +26,7 @@ DGX Spark MCP Server is a [Model Context Protocol](https://modelcontextprotocol.
 ### The Problem
 
 When working with Claude on Spark optimization:
+
 - ❌ You must repeatedly describe your DGX hardware configuration
 - ❌ Claude cannot check real-time GPU availability
 - ❌ Generated Spark configs may not be optimal for your specific hardware
@@ -34,6 +35,7 @@ When working with Claude on Spark optimization:
 ### The Solution
 
 An MCP server that gives Claude:
+
 - ✅ **Persistent Hardware Context** - Automatic detection and caching of DGX specs
 - ✅ **Real-Time GPU Monitoring** - Live availability and utilization data via `nvidia-smi`
 - ✅ **Intelligent Spark Optimization** - Generate optimal configs based on workload analysis
@@ -46,25 +48,25 @@ An MCP server that gives Claude:
 
 Static context that Claude can read at any time:
 
-| Resource | Description |
-|----------|-------------|
-| `dgx://hardware/specs` | Complete DGX hardware specifications (GPUs, memory, CPUs) |
-| `dgx://hardware/topology` | GPU interconnect topology and NVLink configuration |
-| `dgx://system/capabilities` | System capabilities and supported features |
-| `dgx://docs/spark/{topic}` | DGX Spark documentation and best practices |
+| Resource                    | Description                                               |
+| --------------------------- | --------------------------------------------------------- |
+| `dgx://hardware/specs`      | Complete DGX hardware specifications (GPUs, memory, CPUs) |
+| `dgx://hardware/topology`   | GPU interconnect topology and NVLink configuration        |
+| `dgx://system/capabilities` | System capabilities and supported features                |
+| `dgx://docs/spark/{topic}`  | DGX Spark documentation and best practices                |
 
 ### MCP Tools
 
 Dynamic operations that Claude can invoke:
 
-| Tool | Description |
-|------|-------------|
-| `check_gpu_availability` | Query current GPU utilization and availability |
+| Tool                       | Description                                               |
+| -------------------------- | --------------------------------------------------------- |
+| `check_gpu_availability`   | Query current GPU utilization and availability            |
 | `get_optimal_spark_config` | Generate Spark config optimized for workload and hardware |
-| `search_documentation` | Search DGX Spark documentation |
-| `estimate_resources` | Estimate resource requirements for a workload |
-| `get_system_health` | Check system health and status |
-| `validate_spark_config` | Validate Spark configuration against best practices |
+| `search_documentation`     | Search DGX Spark documentation                            |
+| `estimate_resources`       | Estimate resource requirements for a workload             |
+| `get_system_health`        | Check system health and status                            |
+| `validate_spark_config`    | Validate Spark configuration against best practices       |
 
 ## Installation
 
@@ -121,6 +123,7 @@ Add to your `claude_desktop_config.json`:
 ```
 
 **Configuration file locations:**
+
 - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
 - **Windows**: `%APPDATA%\Claude\claude_desktop_config.json`
 - **Linux**: `~/.config/Claude/claude_desktop_config.json`
@@ -378,24 +381,46 @@ We welcome contributions! This project is designed to eventually be contributed 
 3. Make your changes
 4. Run tests: `npm test`
 5. Run quality checks: `just check`
-6. Commit your changes: `git commit -am 'Add your feature'`
+6. Commit using conventional commits: `git commit -m 'feat: add your feature'`
 7. Push to the branch: `git push origin feature/your-feature`
 8. Submit a pull request
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 
+### Commit Message Format
+
+This project uses [Conventional Commits](https://www.conventionalcommits.org/) for automated versioning and changelog generation:
+
+```bash
+# Feature (minor version bump)
+git commit -m "feat: add GPU topology detection"
+
+# Bug fix (patch version bump)
+git commit -m "fix: correct memory calculation"
+
+# Breaking change (major version bump)
+git commit -m "feat!: change resource API interface"
+
+# Other types (no version bump)
+git commit -m "docs: update README"
+git commit -m "chore: update dependencies"
+git commit -m "test: add integration tests"
+```
+
+See [docs/RELEASING.md](docs/RELEASING.md) for the complete release process.
+
 ### Development Workflow
 
 This project follows a multi-workstream development approach:
 
-| Workstream | Status | Description |
-|------------|--------|-------------|
-| WS1: MCP Server Foundation | ✅ Complete | Core MCP protocol implementation |
-| WS2: Hardware Detection | ✅ Complete | GPU and system introspection |
-| WS3: MCP Resources & Tools | ✅ Complete | Resource and tool integration |
-| WS4: Documentation System | ✅ Complete | Searchable docs with indexing |
+| Workstream                  | Status      | Description                        |
+| --------------------------- | ----------- | ---------------------------------- |
+| WS1: MCP Server Foundation  | ✅ Complete | Core MCP protocol implementation   |
+| WS2: Hardware Detection     | ✅ Complete | GPU and system introspection       |
+| WS3: MCP Resources & Tools  | ✅ Complete | Resource and tool integration      |
+| WS4: Documentation System   | ✅ Complete | Searchable docs with indexing      |
 | WS5: DGX Spark Intelligence | ✅ Complete | Workload analysis and optimization |
-| WS6: Testing & DevOps | ✅ Complete | Comprehensive test suite and CI/CD |
+| WS6: Testing & DevOps       | ✅ Complete | Comprehensive test suite and CI/CD |
 
 ## Roadmap
 
@@ -412,6 +437,7 @@ This project follows a multi-workstream development approach:
 ### Common Issues
 
 **nvidia-smi not found**
+
 ```bash
 # Ensure NVIDIA drivers are installed and nvidia-smi is in PATH
 which nvidia-smi
@@ -419,6 +445,7 @@ nvidia-smi
 ```
 
 **Permission denied accessing GPU information**
+
 ```bash
 # Add user to video group (Linux)
 sudo usermod -a -G video $USER
@@ -426,6 +453,7 @@ sudo usermod -a -G video $USER
 ```
 
 **Module not found errors after installation**
+
 ```bash
 # Rebuild the project
 npm run clean

@@ -1,6 +1,6 @@
 # Semantic Versioning and Release Automation Setup Guide
 
-**Status**: Not yet implemented
+**Status**: Implemented
 **Priority**: High (required for npm publishing)
 **Related Issue**: #18
 
@@ -21,6 +21,7 @@ This guide provides step-by-step instructions for implementing semantic versioni
 ## Prerequisites
 
 Before starting, ensure you have:
+
 - Node.js 18.0.0 or higher
 - npm or pnpm installed
 - Write access to the repository
@@ -70,19 +71,7 @@ Create `.commitlintrc.json` in the repository root:
     "type-enum": [
       2,
       "always",
-      [
-        "feat",
-        "fix",
-        "docs",
-        "style",
-        "refactor",
-        "perf",
-        "test",
-        "build",
-        "ci",
-        "chore",
-        "revert"
-      ]
+      ["feat", "fix", "docs", "style", "refactor", "perf", "test", "build", "ci", "chore", "revert"]
     ],
     "subject-case": [2, "never", ["upper-case", "pascal-case"]],
     "subject-full-stop": [2, "never", "."],
@@ -203,13 +192,8 @@ Add to `package.json`:
 ```json
 {
   "lint-staged": {
-    "*.ts": [
-      "eslint --fix",
-      "prettier --write"
-    ],
-    "*.{json,md}": [
-      "prettier --write"
-    ]
+    "*.ts": ["eslint --fix", "prettier --write"],
+    "*.{json,md}": ["prettier --write"]
   }
 }
 ```
@@ -388,7 +372,7 @@ Ensure these fields are correct in `package.json`:
 
 Create `docs/RELEASING.md`:
 
-```markdown
+````markdown
 # Release Process
 
 This document describes how releases are managed for dgx-spark-mcp.
@@ -431,6 +415,7 @@ BREAKING CHANGE: Resource.estimate() now returns Promise<ResourceEstimate>"
 # Documentation
 git commit -m "docs: add installation examples"
 ```
+````
 
 ## Testing Releases
 
@@ -467,6 +452,7 @@ npm publish
 ### Release fails with "ENOENT: no such file or directory"
 
 Ensure build artifacts exist:
+
 ```bash
 npm run build
 ls -la dist/
@@ -475,6 +461,7 @@ ls -la dist/
 ### "No release published" message
 
 Check commit messages follow conventional format:
+
 ```bash
 git log --oneline -10
 ```
@@ -482,7 +469,8 @@ git log --oneline -10
 ### npm authentication fails
 
 Verify NPM_TOKEN is set in GitHub Secrets and hasn't expired.
-```
+
+````
 
 ## Validation Checklist
 
@@ -509,7 +497,7 @@ git commit -m "updated readme"
 
 # This should SUCCEED
 git commit -m "docs: update README with examples"
-```
+````
 
 ### Test 2: Dry Run Release
 
@@ -518,6 +506,7 @@ npm run release:dry-run
 ```
 
 Expected output:
+
 - Analysis of commits
 - Next version calculation
 - Generated release notes
@@ -533,21 +522,21 @@ Expected output: Preview of what would go in CHANGELOG.md
 
 ## Common Conventional Commit Types
 
-| Type | Description | Version Bump | Example |
-|------|-------------|--------------|---------|
-| `feat` | New feature | minor | `feat: add hardware monitoring` |
-| `fix` | Bug fix | patch | `fix: resolve memory leak` |
-| `docs` | Documentation only | none* | `docs: update API reference` |
-| `style` | Code style changes | none | `style: format with prettier` |
-| `refactor` | Code refactoring | patch | `refactor: simplify config parser` |
-| `perf` | Performance improvement | patch | `perf: optimize GPU detection` |
-| `test` | Add/update tests | none | `test: add integration tests` |
-| `build` | Build system changes | none | `build: update tsconfig` |
-| `ci` | CI/CD changes | none | `ci: add release workflow` |
-| `chore` | Other changes | none | `chore: update dependencies` |
-| `revert` | Revert previous commit | patch | `revert: undo feature X` |
+| Type       | Description             | Version Bump | Example                            |
+| ---------- | ----------------------- | ------------ | ---------------------------------- |
+| `feat`     | New feature             | minor        | `feat: add hardware monitoring`    |
+| `fix`      | Bug fix                 | patch        | `fix: resolve memory leak`         |
+| `docs`     | Documentation only      | none\*       | `docs: update API reference`       |
+| `style`    | Code style changes      | none         | `style: format with prettier`      |
+| `refactor` | Code refactoring        | patch        | `refactor: simplify config parser` |
+| `perf`     | Performance improvement | patch        | `perf: optimize GPU detection`     |
+| `test`     | Add/update tests        | none         | `test: add integration tests`      |
+| `build`    | Build system changes    | none         | `build: update tsconfig`           |
+| `ci`       | CI/CD changes           | none         | `ci: add release workflow`         |
+| `chore`    | Other changes           | none         | `chore: update dependencies`       |
+| `revert`   | Revert previous commit  | patch        | `revert: undo feature X`           |
 
-*`docs` changes to README.md trigger a patch release
+\*`docs` changes to README.md trigger a patch release
 
 ## Breaking Changes
 
@@ -623,6 +612,7 @@ Both trigger a **major** version bump.
 ## Questions?
 
 If you encounter issues or have questions:
+
 1. Check the [Troubleshooting](#troubleshooting) section
 2. Review existing [GitHub Issues](https://github.com/raibid-labs/dgx-spark-mcp/issues)
 3. Create a new issue with the `release` label

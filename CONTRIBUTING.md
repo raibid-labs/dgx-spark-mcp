@@ -143,6 +143,7 @@ git commit -m "test: add integration tests for resource estimation"
 ```
 
 **Commit types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation changes
@@ -171,16 +172,15 @@ git push origin feature/your-feature-name
 - Use explicit return types for functions
 
 **Good:**
+
 ```typescript
-export function calculateOptimalExecutors(
-  totalCores: number,
-  coresPerExecutor: number
-): number {
+export function calculateOptimalExecutors(totalCores: number, coresPerExecutor: number): number {
   return Math.floor(totalCores / coresPerExecutor);
 }
 ```
 
 **Bad:**
+
 ```typescript
 export function calculateOptimalExecutors(totalCores: any, coresPerExecutor: any): any {
   return Math.floor(totalCores / coresPerExecutor);
@@ -323,26 +323,33 @@ MOCK_HARDWARE=true npm test
 
 ```markdown
 ## Description
+
 Brief description of the changes.
 
 ## Motivation
+
 Why are these changes needed?
 
 ## Changes
+
 - Change 1
 - Change 2
 
 ## Testing
+
 How were these changes tested?
 
 ## Breaking Changes
+
 Are there any breaking changes? If yes, describe them.
 
 ## Related Issues
+
 Fixes #123
 Relates to #456
 
 ## Checklist
+
 - [ ] Tests added/updated
 - [ ] Documentation updated
 - [ ] All tests pass
@@ -363,7 +370,7 @@ Relates to #456
 
 Use JSDoc for all public APIs:
 
-```typescript
+````typescript
 /**
  * Analyzes a Spark workload and determines its characteristics.
  *
@@ -383,7 +390,7 @@ Use JSDoc for all public APIs:
 export function analyzeWorkload(workload: WorkloadDefinition): WorkloadAnalysis {
   // Implementation
 }
-```
+````
 
 ### README and Guides
 
@@ -394,21 +401,16 @@ export function analyzeWorkload(workload: WorkloadDefinition): WorkloadAnalysis 
 
 ### Changelog
 
-Update `CHANGELOG.md` for significant changes:
+The `CHANGELOG.md` is **automatically generated** by semantic-release based on conventional commit messages. You don't need to manually update it.
 
-```markdown
-## [Unreleased]
+When you use conventional commits, the changelog will be updated automatically during the release process:
 
-### Added
-- Support for H100 GPU architecture
-- New `validate_spark_config` tool
+- `feat:` commits → appear under "Features"
+- `fix:` commits → appear under "Bug Fixes"
+- `perf:` commits → appear under "Performance Improvements"
+- `docs:` commits → appear under "Documentation"
 
-### Changed
-- Improved GPU topology detection algorithm
-
-### Fixed
-- Fixed memory estimation for large datasets
-```
+See [docs/RELEASING.md](docs/RELEASING.md) for the complete release process.
 
 ## Community
 
