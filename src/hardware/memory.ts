@@ -9,7 +9,9 @@ import { executeCommand, parseKeyValue } from '../utils/exec.js';
 /**
  * Detect system memory information
  */
-export async function detectMemory(includeModules: boolean = false): Promise<MemoryDetectionResult> {
+export async function detectMemory(
+  includeModules: boolean = false
+): Promise<MemoryDetectionResult> {
   const startTime = Date.now();
 
   // Parse /proc/meminfo
@@ -121,7 +123,9 @@ async function detectMemoryModules(): Promise<MemoryModule[] | undefined> {
 /**
  * Detect hugepages configuration
  */
-async function detectHugepages(memInfo: Map<string, number>): Promise<{ total: number; free: number; size: number } | undefined> {
+async function detectHugepages(
+  memInfo: Map<string, number>
+): Promise<{ total: number; free: number; size: number } | undefined> {
   const hugepagesTotal = memInfo.get('HugePages_Total') || 0;
   const hugepagesFree = memInfo.get('HugePages_Free') || 0;
   const hugepageSize = memInfo.get('Hugepagesize') || 0;

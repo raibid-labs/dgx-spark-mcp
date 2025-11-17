@@ -75,17 +75,17 @@ export async function fetchExternalDoc(
 /**
  * Fetch NVIDIA Spark documentation
  */
-export async function fetchNvidiaDoc(topic: string, options: FetchOptions = {}): Promise<{ content: string; fromCache: boolean }> {
+export async function fetchNvidiaDoc(
+  topic: string,
+  options: FetchOptions = {}
+): Promise<{ content: string; fromCache: boolean }> {
   return fetchExternalDoc('nvidia-spark', topic, options);
 }
 
 /**
  * Fetch with retry logic
  */
-async function fetchWithRetry(
-  url: string,
-  options: FetchOptions = {}
-): Promise<string> {
+async function fetchWithRetry(url: string, options: FetchOptions = {}): Promise<string> {
   const { timeout = 30000, retries = 3 } = options;
   let lastError: Error | null = null;
 
@@ -109,7 +109,7 @@ async function fetchWithRetry(
 
       const content = await response.text();
       return content;
-    } catch (error) {
+    } catch (error: unknown) {
       lastError = error as Error;
 
       if (attempt < retries - 1) {
@@ -138,14 +138,14 @@ function isHtmlContent(content: string): boolean {
  * Sleep utility
  */
 function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
  * Get list of available external sources
  */
 export function getExternalSources(): ExternalDocSource[] {
-  return Object.values(EXTERNAL_SOURCES).filter(source => source.enabled);
+  return Object.values(EXTERNAL_SOURCES).filter((source) => source.enabled);
 }
 
 /**
@@ -183,8 +183,8 @@ export async function prefetchCommonDocs(): Promise<void> {
     { source: 'nvidia-dgx', path: 'overview' },
   ];
 
-  const promises = commonDocs.map(doc =>
-    fetchExternalDoc(doc.source, doc.path, { useCache: true }).catch(err => {
+  const promises = commonDocs.map((doc) =>
+    fetchExternalDoc(doc.source, doc.path, { useCache: true }).catch((err) => {
       console.warn(`Failed to prefetch ${doc.source}/${doc.path}:`, err.message);
     })
   );

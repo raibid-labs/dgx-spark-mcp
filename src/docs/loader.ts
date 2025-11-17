@@ -4,12 +4,7 @@
  * DGX-Spark MCP Server - Workstream 4
  */
 
-import {
-  initialize,
-  getDocumentContent,
-  listAllDocs,
-  searchDocumentation,
-} from './api.js';
+import { initialize, getDocumentContent, listAllDocs, searchDocumentation } from './api.js';
 
 /**
  * MCP Resource URI patterns:
@@ -18,6 +13,29 @@ import {
  * - dgx://docs/{id} - Get specific document
  * - dgx://docs/{category}/{id} - Get document by category
  */
+
+/**
+ * Document structure interface
+ */
+interface DocumentData {
+  title: string;
+  content: string;
+  url?: string;
+  description?: string;
+  metadata?: {
+    description?: string;
+    category?: string;
+    tags?: string[];
+  };
+}
+
+/**
+ * Search options interface
+ */
+interface SearchOptions {
+  limit: number;
+  categories?: string[];
+}
 
 /**
  * Load documentation resource by URI
@@ -43,7 +61,7 @@ export async function loadDocumentationResource(uri: string): Promise<{
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const category = url.searchParams.get('category');
 
-    const options: any = { limit };
+    const options: SearchOptions = { limit };
     if (category) {
       options.categories = [category];
     }
@@ -56,7 +74,7 @@ export async function loadDocumentationResource(uri: string): Promise<{
   }
 
   // Handle document request
-  const pathParts = url.pathname.split('/').filter(p => p);
+  const pathParts = url.pathname.split('/').filter((p) => p);
   let docId: string;
 
   if (pathParts.length === 1 && pathParts[0]) {
@@ -80,7 +98,7 @@ export async function loadDocumentationResource(uri: string): Promise<{
 
   // Return as markdown
   return {
-    content: formatDocumentAsMarkdown(response.data),
+    content: formatDocumentAsMarkdown(response.data as DocumentData),
     mimeType: 'text/markdown',
   };
 }
@@ -88,7 +106,7 @@ export async function loadDocumentationResource(uri: string): Promise<{
 /**
  * Format document data as markdown
  */
-function formatDocumentAsMarkdown(doc: any): string {
+function formatDocumentAsMarkdown(doc: DocumentData): string {
   const lines: string[] = [];
 
   // Add frontmatter
@@ -100,7 +118,7 @@ function formatDocumentAsMarkdown(doc: any): string {
   if (doc.metadata?.category) {
     lines.push(`category: ${doc.metadata.category}`);
   }
-  if (doc.metadata?.tags?.length > 0) {
+  if (doc.metadata?.tags && doc.metadata.tags.length > 0) {
     lines.push(`tags: [${doc.metadata.tags.join(', ')}]`);
   }
   lines.push('---');
@@ -122,20 +140,23 @@ export async function initializeLoader(docsDir: string = 'docs'): Promise<void> 
 /**
  * Get documentation metadata for MCP resources/list
  */
-export async function getDocumentationResourceList(): Promise<Array<{
-  uri: string;
-  name: string;
-  description: string;
-  mimeType: string;
-}>> {
+export async function getDocumentationResourceList(): Promise<
+  Array<{
+    uri: string;
+    name: string;
+    description: string;
+    mimeType: string;
+  }>
+> {
   const response = await listAllDocs();
 
   if (!response.success) {
     return [];
   }
 
-  const resources = response.data.map((doc: any) => ({
-    uri: doc.url,
+  const data = response.data as DocumentData[];
+  const resources = data.map((doc) => ({
+    uri: doc.url || `dgx://docs/${doc.title}`,
     name: doc.title,
     description: doc.description || doc.title,
     mimeType: 'text/markdown',
@@ -162,7 +183,10 @@ export async function getDocumentationResourceList(): Promise<Array<{
 /**
  * Handle documentation search tool call
  */
-export async function handleSearchTool(query: string, options: any = {}): Promise<any> {
+export async function handleSearchTool(
+  query: string,
+  options: Record<string, unknown> = {}
+): Promise<Record<string, unknown>> {
   const response = await searchDocumentation(query, options);
 
   if (!response.success) {

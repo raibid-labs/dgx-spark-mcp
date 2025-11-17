@@ -11,7 +11,9 @@ import type { SparkConfigRequest, WorkloadType } from '../types/spark-config.js'
 /**
  * Get optimal Spark configuration
  */
-export async function getOptimalSparkConfig(args: GetOptimalSparkConfigArgs): Promise<ToolCallResponse> {
+export async function getOptimalSparkConfig(
+  args: GetOptimalSparkConfigArgs
+): Promise<ToolCallResponse> {
   try {
     // Get hardware snapshot
     const snapshot = await getHardwareSnapshot({ useCache: true });
@@ -24,11 +26,11 @@ export async function getOptimalSparkConfig(args: GetOptimalSparkConfigArgs): Pr
 
     // Map workload type from tool args to Spark config type
     const workloadTypeMap: Record<string, WorkloadType> = {
-      'etl': 'etl',
+      etl: 'etl',
       'ml-training': 'ml-training',
       'ml-inference': 'ml-inference',
-      'analytics': 'analytics',
-      'streaming': 'streaming',
+      analytics: 'analytics',
+      streaming: 'streaming',
     };
 
     const workloadType = workloadTypeMap[args.workloadType] || 'etl';
@@ -67,27 +69,36 @@ export async function getOptimalSparkConfig(args: GetOptimalSparkConfigArgs): Pr
       },
       alternatives: result.alternatives,
       howToUse: {
-        description: 'Use the spark-submit command below to run your job with these optimized settings',
+        description:
+          'Use the spark-submit command below to run your job with these optimized settings',
         example: `spark-submit ${sparkSubmitArgs.slice(0, 6).join(' \\\n  ')} ... your-app.jar`,
         configFile: 'You can also save these settings to spark-defaults.conf',
       },
     };
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(response, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(response, null, 2),
+        },
+      ],
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: 'Failed to generate Spark configuration',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              error: 'Failed to generate Spark configuration',
+              message: error instanceof Error ? error.message : 'Unknown error',
+            },
+            null,
+            2
+          ),
+        },
+      ],
       isError: true,
     };
   }
@@ -113,9 +124,13 @@ function parseMemoryString(memory: string): number {
   const unit = match[2].toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }

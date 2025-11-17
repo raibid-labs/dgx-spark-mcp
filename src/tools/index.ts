@@ -3,7 +3,15 @@
  * Central module for all MCP tools
  */
 
-import type { ToolDescriptor, ToolCallResponse } from '../types/tools.js';
+import type {
+  ToolDescriptor,
+  ToolCallResponse,
+  CheckGPUAvailabilityArgs,
+  GetOptimalSparkConfigArgs,
+  SearchDocumentationArgs,
+  EstimateResourcesArgs,
+  GetSystemHealthArgs,
+} from '../types/tools.js';
 import { checkGPUAvailability } from './gpu-availability.js';
 import { getOptimalSparkConfig } from './spark-config.js';
 import { searchDocumentation } from './search-docs.js';
@@ -18,7 +26,8 @@ export function listAllTools(): ToolDescriptor[] {
   return [
     {
       name: 'check_gpu_availability',
-      description: 'Check current GPU availability and get recommendations for job placement. Returns available GPUs with utilization and memory status.',
+      description:
+        'Check current GPU availability and get recommendations for job placement. Returns available GPUs with utilization and memory status.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -37,7 +46,8 @@ export function listAllTools(): ToolDescriptor[] {
     },
     {
       name: 'get_optimal_spark_config',
-      description: 'Generate optimal Spark configuration based on workload type and data size. Returns recommended executor settings, memory configuration, and spark-submit command.',
+      description:
+        'Generate optimal Spark configuration based on workload type and data size. Returns recommended executor settings, memory configuration, and spark-submit command.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -68,7 +78,8 @@ export function listAllTools(): ToolDescriptor[] {
     },
     {
       name: 'search_documentation',
-      description: 'Search Spark documentation by query. Returns relevant documentation sections with excerpts and relevance scores.',
+      description:
+        'Search Spark documentation by query. Returns relevant documentation sections with excerpts and relevance scores.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -93,13 +104,15 @@ export function listAllTools(): ToolDescriptor[] {
     },
     {
       name: 'estimate_resources',
-      description: 'Estimate resource requirements for a workload based on description and optional data size. Returns feasibility analysis and recommendations.',
+      description:
+        'Estimate resource requirements for a workload based on description and optional data size. Returns feasibility analysis and recommendations.',
       inputSchema: {
         type: 'object',
         properties: {
           description: {
             type: 'string',
-            description: 'Description of the workload (e.g., "Train 1B parameter model", "Process daily logs")',
+            description:
+              'Description of the workload (e.g., "Train 1B parameter model", "Process daily logs")',
           },
           dataSize: {
             type: 'string',
@@ -116,7 +129,8 @@ export function listAllTools(): ToolDescriptor[] {
     },
     {
       name: 'get_system_health',
-      description: 'Check overall system health including CPU, memory, GPU, storage, and network. Returns status and alerts.',
+      description:
+        'Check overall system health including CPU, memory, GPU, storage, and network. Returns status and alerts.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -140,13 +154,19 @@ export async function callTool(name: string, args: unknown): Promise<ToolCallRes
     const validation = validateToolArgs(schema, args || {});
     if (!validation.success) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            error: 'Invalid tool arguments',
-            details: formatValidationErrors(validation.errors || []),
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                error: 'Invalid tool arguments',
+                details: formatValidationErrors(validation.errors || []),
+              },
+              null,
+              2
+            ),
+          },
+        ],
         isError: true,
       };
     }
@@ -156,29 +176,35 @@ export async function callTool(name: string, args: unknown): Promise<ToolCallRes
   // Call the appropriate tool
   switch (name) {
     case 'check_gpu_availability':
-      return checkGPUAvailability(args as any);
+      return checkGPUAvailability(args as CheckGPUAvailabilityArgs);
 
     case 'get_optimal_spark_config':
-      return getOptimalSparkConfig(args as any);
+      return getOptimalSparkConfig(args as GetOptimalSparkConfigArgs);
 
     case 'search_documentation':
-      return searchDocumentation(args as any);
+      return searchDocumentation(args as SearchDocumentationArgs);
 
     case 'estimate_resources':
-      return estimateResources(args as any);
+      return estimateResources(args as EstimateResourcesArgs);
 
     case 'get_system_health':
-      return getSystemHealth(args as any);
+      return getSystemHealth(args as GetSystemHealthArgs);
 
     default:
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            error: `Unknown tool: ${name}`,
-            availableTools: listAllTools().map(t => t.name),
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                error: `Unknown tool: ${name}`,
+                availableTools: listAllTools().map((t) => t.name),
+              },
+              null,
+              2
+            ),
+          },
+        ],
         isError: true,
       };
   }
@@ -188,7 +214,7 @@ export async function callTool(name: string, args: unknown): Promise<ToolCallRes
  * Check if a tool name is valid
  */
 export function isValidToolName(name: string): boolean {
-  const validNames = listAllTools().map(t => t.name);
+  const validNames = listAllTools().map((t) => t.name);
   return validNames.includes(name);
 }
 

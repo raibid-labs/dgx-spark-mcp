@@ -102,20 +102,16 @@ NUMA node0 CPU(s):                  0-63
 NUMA node1 CPU(s):                  64-127
 Flags:                              fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext pdpe1gb rdtscp lm avx avx2`;
 
-
 class MockChildProcess extends EventEmitter {
   stdout = new EventEmitter();
   stderr = new EventEmitter();
   exitCode: number | null = null;
 
-  constructor(
-    _command: string,
-    _args: string[]
-  ) {
+  constructor(_command: string, _args: string[]) {
     super();
   }
 
-  kill() {
+  kill(): void {
     this.exitCode = -1;
     this.emit('exit', this.exitCode);
   }
@@ -151,8 +147,15 @@ export function exec(
   command: string,
   callback: (error: Error | null, stdout: string, stderr: string) => void
 ): MockChildProcess {
-  const [cmd, ...args] = command.split(' ');
-  return execFile(cmd!, args, callback);
+  const parts = command.split(' ');
+  const cmd = parts[0];
+  const args = parts.slice(1);
+
+  if (!cmd) {
+    throw new Error('Command cannot be empty');
+  }
+
+  return execFile(cmd, args, callback);
 }
 
 export function spawn(command: string, args: string[]): MockChildProcess {

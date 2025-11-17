@@ -43,7 +43,7 @@ export class DocumentIndex {
     }
 
     // Parse and index each file
-    const indexPromises = scanResult.files.map(file => this.indexFile(file));
+    const indexPromises = scanResult.files.map((file) => this.indexFile(file));
     await Promise.all(indexPromises);
 
     // Update stats
@@ -84,7 +84,7 @@ export class DocumentIndex {
       for (const tag of entry.tags) {
         this.stats.tags[tag] = (this.stats.tags[tag] || 0) + 1;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Failed to index file ${filePath}:`, error);
     }
   }
@@ -107,14 +107,14 @@ export class DocumentIndex {
    * Get entries by category
    */
   getEntriesByCategory(category: string): DocumentIndexEntry[] {
-    return this.getAllEntries().filter(entry => entry.category === category);
+    return this.getAllEntries().filter((entry) => entry.category === category);
   }
 
   /**
    * Get entries by tag
    */
   getEntriesByTag(tag: string): DocumentIndexEntry[] {
-    return this.getAllEntries().filter(entry => entry.tags.includes(tag));
+    return this.getAllEntries().filter((entry) => entry.tags.includes(tag));
   }
 
   /**
@@ -153,7 +153,7 @@ export class DocumentIndex {
 
       this.stats = data.stats;
       this.entries = new Map(data.entries);
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Failed to load index from ${filePath}:`, error);
       throw error;
     }

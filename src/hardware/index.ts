@@ -24,13 +24,7 @@ export {
   getAverageGPUUtilization,
 } from './gpu.js';
 
-export {
-  detectCPU,
-  getCPUCount,
-  getCPUModel,
-  hasVirtualizationSupport,
-  hasNUMA,
-} from './cpu.js';
+export { detectCPU, getCPUCount, getCPUModel, hasVirtualizationSupport, hasNUMA } from './cpu.js';
 
 export {
   detectMemory,
@@ -50,12 +44,7 @@ export {
   hasRAID,
 } from './storage.js';
 
-export {
-  detectNetwork,
-  hasInfiniBand,
-  getActiveInterfaces,
-  getInterface,
-} from './network.js';
+export { detectNetwork, hasInfiniBand, getActiveInterfaces, getInterface } from './network.js';
 
 // Topology and caching
 export {

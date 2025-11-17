@@ -18,21 +18,22 @@ import {
   calculateExecutorResources,
   calculateDynamicAllocation,
   calculatePartitionCount,
+  ExecutorResourceResult,
 } from './executor.js';
 
 /**
  * Generate optimal Spark configuration
  */
-export async function generateConfig(
-  request: SparkConfigRequest
-): Promise<OptimizationResult> {
+export async function generateConfig(request: SparkConfigRequest): Promise<OptimizationResult> {
   const rationale: string[] = [];
 
   // Parse data size
   const dataSizeBytes = parseSize(request.dataSize);
-  const dataSizeGB = dataSizeBytes / (1024 ** 3);
+  const dataSizeGB = dataSizeBytes / 1024 ** 3;
 
-  rationale.push(`Optimizing for ${request.workloadType} workload with ${dataSizeGB.toFixed(2)}GB of data.`);
+  rationale.push(
+    `Optimizing for ${request.workloadType} workload with ${dataSizeGB.toFixed(2)}GB of data.`
+  );
 
   // Determine hardware context
   const totalMemory = request.totalMemory ?? 512; // Default to 512GB for DGX
@@ -74,9 +75,7 @@ export async function generateConfig(
     memoryOverhead: `${memoryConfig.memoryOverheadGB}g`,
     cores: executorResources.executorCores,
     instances: executorResources.executorCount,
-    offHeapMemory: memoryConfig.offHeapMemoryGB
-      ? `${memoryConfig.offHeapMemoryGB}g`
-      : undefined,
+    offHeapMemory: memoryConfig.offHeapMemoryGB ? `${memoryConfig.offHeapMemoryGB}g` : undefined,
   };
 
   // Build driver configuration
@@ -91,9 +90,10 @@ export async function generateConfig(
   const shuffleConfig = buildShuffleConfig(request.workloadType, partitionCount);
 
   // Build GPU configuration if GPUs are available
-  const gpuConfig: GPUConfig | undefined = gpuCount > 0
-    ? buildGPUConfig(request.workloadType, executorResources.gpuPerExecutor)
-    : undefined;
+  const gpuConfig: GPUConfig | undefined =
+    gpuCount > 0
+      ? buildGPUConfig(request.workloadType, executorResources.gpuPerExecutor)
+      : undefined;
 
   if (gpuConfig?.enabled) {
     rationale.push('GPU acceleration enabled with RAPIDS support.');
@@ -141,9 +141,11 @@ export async function generateConfig(
     request.workloadType
   );
 
-  rationale.push(
-    `Estimated execution time: ${estimatedPerformance.executionTimeMinutes?.toFixed(1)} minutes.`
-  );
+  if (estimatedPerformance.executionTimeMinutes !== undefined) {
+    rationale.push(
+      `Estimated execution time: ${estimatedPerformance.executionTimeMinutes.toFixed(1)} minutes.`
+    );
+  }
 
   // Generate alternative configurations
   const alternatives = generateAlternatives(config, request);
@@ -250,7 +252,7 @@ function buildOptimizationConfig(workloadType: string): OptimizationConfig {
 function estimatePerformance(
   config: SparkConfig,
   dataSizeGB: number,
-  executorResources: any,
+  executorResources: ExecutorResourceResult,
   workloadType: string
 ): OptimizationResult['estimatedPerformance'] {
   // Simple performance model
@@ -274,10 +276,11 @@ function estimatePerformance(
 
   const totalThroughputMBps = throughputPerCore * totalCores;
   const dataSizeMB = dataSizeGB * 1024;
-  const executionTimeMinutes = (dataSizeMB / totalThroughputMBps) / 60;
+  const executionTimeMinutes = dataSizeMB / totalThroughputMBps / 60;
 
   // Resource efficiency (0-1)
-  const memoryEfficiency = Math.min(1, executorResources.totalExecutorMemoryGB / (dataSizeGB * 2));
+  const totalExecutorMemoryGB = executorResources.totalExecutorMemoryGB;
+  const memoryEfficiency = Math.min(1, totalExecutorMemoryGB / (dataSizeGB * 2));
   const coreEfficiency = Math.min(1, totalCores / (dataSizeGB / 10)); // Rough heuristic
   const resourceEfficiency = (memoryEfficiency + coreEfficiency) / 2;
 
@@ -306,7 +309,8 @@ function generateAlternatives(
 
     alternatives.push({
       config: moreExecutorsConfig,
-      tradeoff: 'More executors with less memory each - better for smaller tasks, may increase overhead',
+      tradeoff:
+        'More executors with less memory each - better for smaller tasks, may increase overhead',
     });
   }
 
@@ -317,7 +321,8 @@ function generateAlternatives(
 
     alternatives.push({
       config: staticConfig,
-      tradeoff: 'Static allocation - more predictable performance, but less flexible resource usage',
+      tradeoff:
+        'Static allocation - more predictable performance, but less flexible resource usage',
     });
   }
 
@@ -367,7 +372,7 @@ export function configToSparkSubmitArgs(config: SparkConfig): string[] {
     props.push(`spark.rapids.sql.enabled=${config.gpu.rapids?.sqlEnabled ?? false}`);
   }
 
-  props.forEach(prop => {
+  props.forEach((prop) => {
     args.push('--conf', prop);
   });
 

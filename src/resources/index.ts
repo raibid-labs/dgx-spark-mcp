@@ -4,8 +4,16 @@
  */
 
 import type { ResourceDescriptor, ResourceContent } from '../types/resources.js';
-import { getHardwareResourceDescriptors, readHardwareResource, isHardwareResourceURI } from './hardware.js';
-import { getCapabilitiesResourceDescriptor, readCapabilitiesResource, isCapabilitiesResourceURI } from './capabilities.js';
+import {
+  getHardwareResourceDescriptors,
+  readHardwareResource,
+  isHardwareResourceURI,
+} from './hardware.js';
+import {
+  getCapabilitiesResourceDescriptor,
+  readCapabilitiesResource,
+  isCapabilitiesResourceURI,
+} from './capabilities.js';
 import { getDocsResourceDescriptors, readDocsResource, isDocsResourceURI } from './docs.js';
 import { SystemResourceURIs } from '../types/resources.js';
 
@@ -25,12 +33,7 @@ export async function listAllResources(): Promise<ResourceDescriptor[]> {
     mimeType: 'application/json',
   };
 
-  return [
-    serverInfoResource,
-    ...hardwareResources,
-    capabilitiesResource,
-    ...docsResources,
-  ];
+  return [serverInfoResource, ...hardwareResources, capabilitiesResource, ...docsResources];
 }
 
 /**
@@ -39,21 +42,27 @@ export async function listAllResources(): Promise<ResourceDescriptor[]> {
 export async function readResource(uri: string): Promise<ResourceContent[]> {
   // Server info resource
   if (uri === SystemResourceURIs.INFO) {
-    return [{
-      uri,
-      mimeType: 'application/json',
-      text: JSON.stringify({
-        name: 'dgx-spark-mcp',
-        version: '0.1.0',
-        description: 'Model Context Protocol server for DGX Spark optimization',
-        capabilities: {
-          resources: true,
-          tools: true,
-          hardware: true,
-          documentation: true,
-        },
-      }, null, 2),
-    }];
+    return [
+      {
+        uri,
+        mimeType: 'application/json',
+        text: JSON.stringify(
+          {
+            name: 'dgx-spark-mcp',
+            version: '0.1.0',
+            description: 'Model Context Protocol server for DGX Spark optimization',
+            capabilities: {
+              resources: true,
+              tools: true,
+              hardware: true,
+              documentation: true,
+            },
+          },
+          null,
+          2
+        ),
+      },
+    ];
   }
 
   // Hardware resources

@@ -19,16 +19,21 @@ export async function detectCPU(): Promise<CPUDetectionResult> {
   }
 
   // Get first processor for general info
-  const first = processors[0]!;
+  const first = processors[0];
+  if (!first) {
+    throw new Error('No processor information available');
+  }
 
   const modelName = first.get('model name') || 'Unknown';
   const vendor = first.get('vendor_id') || 'Unknown';
   const architecture = await detectArchitecture();
-  const flags = (first.get('flags') || '').split(/\s+/).filter(f => f.length > 0);
+  const flags = (first.get('flags') || '').split(/\s+/).filter((f) => f.length > 0);
 
   // Count physical cores and sockets
-  const physicalIds = new Set(processors.map(p => p.get('physical id')).filter(id => id !== undefined));
-  const coreIds = new Set(processors.map(p => p.get('core id')).filter(id => id !== undefined));
+  const physicalIds = new Set(
+    processors.map((p) => p.get('physical id')).filter((id) => id !== undefined)
+  );
+  const coreIds = new Set(processors.map((p) => p.get('core id')).filter((id) => id !== undefined));
 
   const sockets = physicalIds.size || 1;
   const coresPerSocket = coreIds.size || processors.length;
@@ -72,7 +77,7 @@ export async function detectCPU(): Promise<CPUDetectionResult> {
       modelName: proc.get('model name') || modelName,
       mhz: parseFloat(proc.get('cpu MHz') || '0'),
       cacheSize: parseInt((proc.get('cache size') || '0').replace(/\D/g, ''), 10) * 1024,
-      flags: (proc.get('flags') || '').split(/\s+/).filter(f => f.length > 0),
+      flags: (proc.get('flags') || '').split(/\s+/).filter((f) => f.length > 0),
     };
     return core;
   });
@@ -107,8 +112,8 @@ async function detectCache(procInfo: Map<string, string>): Promise<CPUCache> {
   // Try to get from /proc/cpuinfo
   const cacheSizeStr = procInfo.get('cache size') || '';
   const match = cacheSizeStr.match(/(\d+)\s*KB/i);
-  if (match) {
-    cache.l3 = parseInt(match[1]!, 10) * 1024;
+  if (match?.[1]) {
+    cache.l3 = parseInt(match[1], 10) * 1024;
   }
 
   // Try to get from /sys/devices/system/cpu
@@ -128,7 +133,9 @@ async function detectCache(procInfo: Map<string, string>): Promise<CPUCache> {
 /**
  * Detect CPU frequency
  */
-async function detectFrequency(procInfo: Map<string, string>): Promise<{ min: number; max: number; current: number }> {
+async function detectFrequency(
+  procInfo: Map<string, string>
+): Promise<{ min: number; max: number; current: number }> {
   const current = parseFloat(procInfo.get('cpu MHz') || '0');
 
   // Try to get min/max from /sys
@@ -171,10 +178,13 @@ async function detectNUMA(): Promise<NUMANode[]> {
 
     // Parse node lines
     const nodeMatch = trimmed.match(/^node (\d+) cpus: (.+)$/);
-    if (nodeMatch) {
-      const nodeId = parseInt(nodeMatch[1]!, 10);
-      const cpusStr = nodeMatch[2]!;
-      const cpus = cpusStr.split(/\s+/).map(c => parseInt(c, 10)).filter(c => !isNaN(c));
+    if (nodeMatch?.[1] && nodeMatch[2]) {
+      const nodeId = parseInt(nodeMatch[1], 10);
+      const cpusStr = nodeMatch[2];
+      const cpus = cpusStr
+        .split(/\s+/)
+        .map((c) => parseInt(c, 10))
+        .filter((c) => !isNaN(c));
 
       currentNode = {
         nodeId,
@@ -187,20 +197,38 @@ async function detectNUMA(): Promise<NUMANode[]> {
 
     // Parse memory size
     const sizeMatch = trimmed.match(/^node (\d+) size: (\d+) MB$/);
-    if (sizeMatch && currentNode && currentNode.nodeId === parseInt(sizeMatch[1]!, 10)) {
-      currentNode.memoryTotal = parseInt(sizeMatch[2]!, 10) * 1024 * 1024;
+    if (
+      sizeMatch?.[1] &&
+      sizeMatch[2] &&
+      currentNode &&
+      currentNode.nodeId === parseInt(sizeMatch[1], 10)
+    ) {
+      currentNode.memoryTotal = parseInt(sizeMatch[2], 10) * 1024 * 1024;
     }
 
     // Parse free memory
     const freeMatch = trimmed.match(/^node (\d+) free: (\d+) MB$/);
-    if (freeMatch && currentNode && currentNode.nodeId === parseInt(freeMatch[1]!, 10)) {
-      currentNode.memoryFree = parseInt(freeMatch[2]!, 10) * 1024 * 1024;
+    if (
+      freeMatch?.[1] &&
+      freeMatch[2] &&
+      currentNode &&
+      currentNode.nodeId === parseInt(freeMatch[1], 10)
+    ) {
+      currentNode.memoryFree = parseInt(freeMatch[2], 10) * 1024 * 1024;
     }
 
     // Parse distances
     const distMatch = trimmed.match(/^node (\d+) distances: (.+)$/);
-    if (distMatch && currentNode && currentNode.nodeId === parseInt(distMatch[1]!, 10)) {
-      const distances = distMatch[2]!.split(/\s+/).map(d => parseInt(d, 10)).filter(d => !isNaN(d));
+    if (
+      distMatch?.[1] &&
+      distMatch[2] &&
+      currentNode &&
+      currentNode.nodeId === parseInt(distMatch[1], 10)
+    ) {
+      const distances = distMatch[2]
+        .split(/\s+/)
+        .map((d) => parseInt(d, 10))
+        .filter((d) => !isNaN(d));
       currentNode.distances = distances;
 
       // Complete current node

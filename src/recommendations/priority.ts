@@ -16,7 +16,7 @@ export async function rankRecommendations(
   recommendations: Recommendation[]
 ): Promise<RankedRecommendation[]> {
   // Calculate scores for each recommendation
-  const scored = recommendations.map(rec => ({
+  const scored = recommendations.map((rec) => ({
     ...rec,
     score: calculateScore(rec),
     rank: 0,
@@ -114,7 +114,7 @@ export async function filterByPriority(
   const priorityOrder = ['low', 'medium', 'high', 'critical'];
   const minIndex = priorityOrder.indexOf(minPriority);
 
-  return recommendations.filter(rec => {
+  return recommendations.filter((rec) => {
     const recIndex = priorityOrder.indexOf(rec.priority);
     return recIndex >= minIndex;
   });
@@ -133,7 +133,7 @@ export async function groupByCategory(
     'best-practice': [],
   };
 
-  recommendations.forEach(rec => {
+  recommendations.forEach((rec) => {
     const categoryArray = grouped[rec.category];
     if (categoryArray) {
       categoryArray.push(rec);
@@ -157,10 +157,8 @@ export async function getTopRecommendations(
 /**
  * Get quick wins (high impact, easy implementation)
  */
-export async function getQuickWins(
-  recommendations: Recommendation[]
-): Promise<Recommendation[]> {
-  return recommendations.filter(rec => {
+export async function getQuickWins(recommendations: Recommendation[]): Promise<Recommendation[]> {
+  return recommendations.filter((rec) => {
     const hasHighImpact = rec.priority === 'critical' || rec.priority === 'high';
     const isEasy = rec.implementation.difficulty === 'easy';
     return hasHighImpact && isEasy;

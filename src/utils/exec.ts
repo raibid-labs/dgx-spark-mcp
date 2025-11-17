@@ -32,11 +32,12 @@ export async function executeCommand(
       stderr: stderr ? stderr.trim() : '',
       exitCode: 0,
     };
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const err = error as { stdout?: string; stderr?: string; message?: string; code?: number };
     return {
-      stdout: error.stdout ? error.stdout.trim() : '',
-      stderr: error.stderr ? error.stderr.trim() : error.message || '',
-      exitCode: error.code || 1,
+      stdout: err.stdout ? err.stdout.trim() : '',
+      stderr: err.stderr ? err.stderr.trim() : err.message || '',
+      exitCode: err.code || 1,
     };
   }
 }
@@ -52,25 +53,28 @@ export async function commandExists(command: string): Promise<boolean> {
 /**
  * Parse CSV output from command
  */
-export function parseCSV(output: string, hasHeader: boolean = true): any[] {
-  const lines = output.split('\n').filter(line => line.trim() !== '');
+export function parseCSV(output: string, hasHeader = true): (Record<string, string> | string[])[] {
+  const lines = output.split('\n').filter((line) => line.trim() !== '');
   if (lines.length === 0) return [];
 
-  const rows: any[] = [];
+  const rows: (Record<string, string> | string[])[] = [];
   let headers: string[] = [];
 
   const startIndex = hasHeader ? 1 : 0;
   if (hasHeader && lines.length > 0) {
-    headers = lines[0]!.split(',').map(h => h.trim());
+    const firstLine = lines[0];
+    if (firstLine) {
+      headers = firstLine.split(',').map((h) => h.trim());
+    }
   }
 
   for (let i = startIndex; i < lines.length; i++) {
     const line = lines[i];
     if (!line) continue;
-    const values = line.split(',').map(v => v.trim());
+    const values = line.split(',').map((v) => v.trim());
 
     if (hasHeader) {
-      const row: any = {};
+      const row: Record<string, string> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
       });

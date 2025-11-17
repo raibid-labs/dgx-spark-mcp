@@ -40,7 +40,7 @@ export class DocumentCache {
 
       // Expired, remove from disk
       await this.remove(url);
-    } catch (error) {
+    } catch {
       // Cache miss
     }
 
@@ -68,7 +68,7 @@ export class DocumentCache {
       const cacheDir = path.dirname(cacheFile);
       await fs.mkdir(cacheDir, { recursive: true });
       await fs.writeFile(cacheFile, JSON.stringify(cached, null, 2));
-    } catch (error) {
+    } catch (error: unknown) {
       console.error(`Failed to write cache for ${url}:`, error);
     }
   }
@@ -82,7 +82,7 @@ export class DocumentCache {
     try {
       const cacheFile = this.getCacheFilePath(url);
       await fs.unlink(cacheFile);
-    } catch (error) {
+    } catch {
       // Ignore errors if file doesn't exist
     }
   }
@@ -95,7 +95,7 @@ export class DocumentCache {
 
     try {
       await fs.rm(CACHE_DIR, { recursive: true, force: true });
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to clear cache directory:', error);
     }
   }
@@ -121,7 +121,7 @@ export class DocumentCache {
         const stats = await fs.stat(file);
         totalSize += stats.size;
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to get cache stats:', error);
     }
 
@@ -150,7 +150,7 @@ export class DocumentCache {
           files.push(fullPath);
         }
       }
-    } catch (error) {
+    } catch {
       // Directory doesn't exist or not readable
     }
 
@@ -182,7 +182,7 @@ export class DocumentCache {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
       const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash; // Convert to 32-bit integer
     }
     return Math.abs(hash).toString(36);
@@ -215,13 +215,13 @@ export class DocumentCache {
             await fs.unlink(file);
             prunedCount++;
           }
-        } catch (error) {
+        } catch {
           // Invalid cache file, remove it
           await fs.unlink(file);
           prunedCount++;
         }
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Failed to prune cache:', error);
     }
 

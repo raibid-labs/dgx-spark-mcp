@@ -33,13 +33,7 @@ export class SearchEngine {
    * Index a document for search
    */
   private indexDocument(doc: DocumentIndexEntry): void {
-    const text = [
-      doc.title,
-      doc.description,
-      doc.content,
-      doc.category,
-      ...doc.tags,
-    ].join(' ');
+    const text = [doc.title, doc.description, doc.content, doc.category, ...doc.tags].join(' ');
 
     const terms = this.tokenize(text);
 
@@ -47,7 +41,10 @@ export class SearchEngine {
       if (!this.termIndex.has(term)) {
         this.termIndex.set(term, new Set());
       }
-      this.termIndex.get(term)!.add(doc.id);
+      const termSet = this.termIndex.get(term);
+      if (termSet) {
+        termSet.add(doc.id);
+      }
     }
   }
 
@@ -59,7 +56,7 @@ export class SearchEngine {
       .toLowerCase()
       .replace(/[^\w\s]/g, ' ')
       .split(/\s+/)
-      .filter(term => term.length > 2);
+      .filter((term) => term.length > 2);
   }
 
   /**
@@ -101,21 +98,26 @@ export class SearchEngine {
           matchedFields.set(docId, new Set());
         }
         const fields = this.getMatchingFields(term, doc);
-        fields.forEach(field => matchedFields.get(docId)!.add(field));
+        const docFields = matchedFields.get(docId);
+        if (docFields) {
+          fields.forEach((field) => docFields.add(field));
+        }
       }
     }
 
     // Filter by category and tags
     let results = Array.from(docScores.entries())
       .map(([id, score]) => {
-        const doc = this.index.get(id)!;
+        const doc = this.index.get(id);
+        if (!doc) return null;
         return { id, score, doc, matchedFields: Array.from(matchedFields.get(id) || []) };
       })
-      .filter(result => {
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .filter((result) => {
         if (categories && categories.length > 0 && !categories.includes(result.doc.category)) {
           return false;
         }
-        if (tags && tags.length > 0 && !tags.some(tag => result.doc.tags.includes(tag))) {
+        if (tags && tags.length > 0 && !tags.some((tag) => result.doc.tags.includes(tag))) {
           return false;
         }
         return result.score >= minScore;
@@ -128,7 +130,7 @@ export class SearchEngine {
     results = results.slice(offset, offset + limit);
 
     // Format results
-    return results.map(result => ({
+    return results.map((result) => ({
       id: result.doc.id,
       title: result.doc.title,
       description: result.doc.description,
@@ -145,14 +147,10 @@ export class SearchEngine {
    * Calculate term frequency in document
    */
   private calculateTermFrequency(term: string, doc: DocumentIndexEntry): number {
-    const text = [
-      doc.title,
-      doc.description,
-      doc.content,
-    ].join(' ').toLowerCase();
+    const text = [doc.title, doc.description, doc.content].join(' ').toLowerCase();
 
     const terms = this.tokenize(text);
-    const count = terms.filter(t => t === term).length;
+    const count = terms.filter((t) => t === term).length;
 
     return count / terms.length;
   }
@@ -175,7 +173,7 @@ export class SearchEngine {
     if (this.tokenize(doc.category).includes(term)) {
       fields.push('category');
     }
-    if (doc.tags.some(tag => this.tokenize(tag).includes(term))) {
+    if (doc.tags.some((tag) => this.tokenize(tag).includes(term))) {
       fields.push('tags');
     }
 
@@ -259,7 +257,10 @@ export async function initializeSearch(): Promise<void> {
 /**
  * Search documentation
  */
-export async function search(query: string, options: Partial<SearchOptions> = {}): Promise<SearchResult[]> {
+export async function search(
+  query: string,
+  options: Partial<SearchOptions> = {}
+): Promise<SearchResult[]> {
   const searchEngine = getSearchEngine();
   return searchEngine.search({ query, ...options });
 }

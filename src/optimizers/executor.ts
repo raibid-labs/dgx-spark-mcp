@@ -81,9 +81,7 @@ export async function calculateExecutorResources(
     // Reserve 1 core for driver
     const availableCores = Math.max(1, request.totalCores - 1);
     executorCount = Math.floor(availableCores / executorCores);
-    rationale.push(
-      `${executorCount} executors calculated from ${availableCores} available cores.`
-    );
+    rationale.push(`${executorCount} executors calculated from ${availableCores} available cores.`);
   }
 
   // Apply executor count constraints

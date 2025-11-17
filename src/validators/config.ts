@@ -80,7 +80,8 @@ function validateExecutorConfig(
       field: 'executor.memory',
       message: `Executor memory (${config.executor.memory}) is very high`,
       severity: 'warning',
-      suggestion: 'Large executor memory (>64g) can cause GC issues. Use more executors with less memory.',
+      suggestion:
+        'Large executor memory (>64g) can cause GC issues. Use more executors with less memory.',
     });
   }
 
@@ -350,9 +351,13 @@ function parseMemory(memory: string): number {
   const unit = match[2].toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }

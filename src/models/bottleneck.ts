@@ -97,7 +97,7 @@ function checkCPUBottlenecks(config: SparkConfig, hardware: HardwareContext): Bo
     });
   }
   // Heavy utilization
-  else if (coreUtilization > 0.90) {
+  else if (coreUtilization > 0.9) {
     bottlenecks.push({
       type: 'cpu',
       severity: 'medium',
@@ -157,7 +157,7 @@ function checkMemoryBottlenecks(
     });
   }
   // High utilization
-  else if (memUtilization > 0.90) {
+  else if (memUtilization > 0.9) {
     bottlenecks.push({
       type: 'memory',
       severity: 'high',
@@ -246,7 +246,10 @@ function checkGPUBottlenecks(
     }
 
     // RAPIDS not enabled for suitable workloads
-    if (!config.gpu.rapids?.enabled && (workloadType === 'ml-training' || workloadType === 'analytics')) {
+    if (
+      !config.gpu.rapids?.enabled &&
+      (workloadType === 'ml-training' || workloadType === 'analytics')
+    ) {
       bottlenecks.push({
         type: 'gpu',
         severity: 'low',
@@ -289,7 +292,9 @@ function checkIOBottlenecks(config: SparkConfig, workloadType: string): Bottlene
   }
 
   // Broadcast threshold too low
-  const broadcastThreshold = parseSizeString(config.optimization.autoBroadcastJoinThreshold ?? '10mb');
+  const broadcastThreshold = parseSizeString(
+    config.optimization.autoBroadcastJoinThreshold ?? '10mb'
+  );
   if (broadcastThreshold < 10 * 1024 * 1024 && workloadType === 'analytics') {
     bottlenecks.push({
       type: 'io',
@@ -385,9 +390,9 @@ function checkConfigurationBottlenecks(config: SparkConfig): Bottleneck[] {
 function determineOverallSeverity(bottlenecks: Bottleneck[]): BottleneckAnalysis['severity'] {
   if (bottlenecks.length === 0) return 'none';
 
-  const hasCritical = bottlenecks.some(b => b.severity === 'critical');
-  const hasHigh = bottlenecks.some(b => b.severity === 'high');
-  const hasMedium = bottlenecks.some(b => b.severity === 'medium');
+  const hasCritical = bottlenecks.some((b) => b.severity === 'critical');
+  const hasHigh = bottlenecks.some((b) => b.severity === 'high');
+  const hasMedium = bottlenecks.some((b) => b.severity === 'medium');
 
   if (hasCritical) return 'critical';
   if (hasHigh) return 'high';
@@ -410,28 +415,34 @@ function generateBottleneckRecommendations(
   }
 
   // Prioritize critical and high severity bottlenecks
-  const critical = bottlenecks.filter(b => b.severity === 'critical' || b.severity === 'high');
+  const critical = bottlenecks.filter((b) => b.severity === 'critical' || b.severity === 'high');
 
   if (critical.length > 0) {
     recommendations.push('Address critical bottlenecks immediately:');
-    critical.forEach(b => {
+    critical.forEach((b) => {
       recommendations.push(`- ${b.suggestedFix}`);
     });
   }
 
   // General recommendations
-  const types = new Set(bottlenecks.map(b => b.type));
+  const types = new Set(bottlenecks.map((b) => b.type));
 
   if (types.has('memory') && types.has('cpu')) {
-    recommendations.push('Both CPU and memory are bottlenecks. Consider increasing overall cluster resources.');
+    recommendations.push(
+      'Both CPU and memory are bottlenecks. Consider increasing overall cluster resources.'
+    );
   }
 
   if (types.has('shuffle')) {
-    recommendations.push('Shuffle operations are a bottleneck. Consider optimizing join strategies and data partitioning.');
+    recommendations.push(
+      'Shuffle operations are a bottleneck. Consider optimizing join strategies and data partitioning.'
+    );
   }
 
   if (types.has('gpu') && workloadType.includes('ml')) {
-    recommendations.push('GPU configuration issues detected. Review GPU allocation and RAPIDS settings for ML workloads.');
+    recommendations.push(
+      'GPU configuration issues detected. Review GPU allocation and RAPIDS settings for ML workloads.'
+    );
   }
 
   return recommendations;
@@ -444,14 +455,18 @@ function parseMemory(memory: string): number {
   const match = memory.match(/^(\d+)([gmk])$/i);
   if (!match) return 0;
 
-  const value = parseInt(match?.[1] ?? "0");
-  const unit = match?.[2] ?? "g".toLowerCase();
+  const value = parseInt(match?.[1] ?? '0');
+  const unit = match?.[2] ?? 'g'.toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }
 

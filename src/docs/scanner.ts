@@ -11,7 +11,10 @@ import { ScanResult, ScanError } from '../types/docs.js';
 /**
  * Scan directory for markdown files
  */
-export async function scanDirectory(dirPath: string, recursive: boolean = true): Promise<ScanResult> {
+export async function scanDirectory(
+  dirPath: string,
+  recursive: boolean = true
+): Promise<ScanResult> {
   const startTime = Date.now();
   const files: string[] = [];
   const errors: ScanError[] = [];
@@ -25,14 +28,14 @@ export async function scanDirectory(dirPath: string, recursive: boolean = true):
       try {
         const stats = await fs.stat(file);
         totalSize += stats.size;
-      } catch (error) {
+      } catch (error: unknown) {
         errors.push({
           filePath: file,
           error: `Failed to stat file: ${error}`,
         });
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     errors.push({
       filePath: dirPath,
       error: `Failed to scan directory: ${error}`,
@@ -82,7 +85,7 @@ async function scanDirectoryRecursive(
         files.push(fullPath);
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     errors.push({
       filePath: dirPath,
       error: `Failed to read directory: ${error}`,
@@ -120,7 +123,7 @@ export async function watchDirectory(
         }
       }
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error(`Failed to watch directory ${dirPath}:`, error);
   }
 }
@@ -129,9 +132,9 @@ export async function watchDirectory(
  * Filter files by pattern
  */
 export function filterFiles(files: string[], patterns: string[]): string[] {
-  return files.filter(file => {
+  return files.filter((file) => {
     const normalized = file.replace(/\\/g, '/');
-    return patterns.some(pattern => {
+    return patterns.some((pattern) => {
       const regex = new RegExp(pattern.replace(/\*/g, '.*'));
       return regex.test(normalized);
     });

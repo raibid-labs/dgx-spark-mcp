@@ -50,11 +50,10 @@ export async function predictExecutionTime(
   request: TimeEstimationRequest
 ): Promise<TimeEstimationResult> {
   // Parse data size
-  const dataSizeBytes = typeof request.dataSize === 'number'
-    ? request.dataSize
-    : parseDataSize(request.dataSize);
+  const dataSizeBytes =
+    typeof request.dataSize === 'number' ? request.dataSize : parseDataSize(request.dataSize);
 
-  const dataSizeGB = dataSizeBytes / (1024 ** 3);
+  const dataSizeGB = dataSizeBytes / 1024 ** 3;
 
   // Use historical data if available
   if (request.historicalData && request.historicalData.length > 0) {
@@ -67,12 +66,7 @@ export async function predictExecutionTime(
   }
 
   // Use model-based prediction
-  return predictFromModel(
-    dataSizeGB,
-    request.operations,
-    request.hardware,
-    request.workloadType
-  );
+  return predictFromModel(dataSizeGB, request.operations, request.hardware, request.workloadType);
 }
 
 /**
@@ -86,7 +80,7 @@ function predictFromHistorical(
 ): TimeEstimationResult {
   // Filter for similar workload type
   const relevantData = workloadType
-    ? historicalData.filter(h => h.workloadType === workloadType)
+    ? historicalData.filter((h) => h.workloadType === workloadType)
     : historicalData;
 
   if (relevantData.length === 0) {
@@ -96,12 +90,12 @@ function predictFromHistorical(
 
   // Find closest data size match
   const closest = relevantData.reduce((prev, curr) => {
-    const prevDiff = Math.abs((prev.dataSize / (1024 ** 3)) - dataSizeGB);
-    const currDiff = Math.abs((curr.dataSize / (1024 ** 3)) - dataSizeGB);
+    const prevDiff = Math.abs(prev.dataSize / 1024 ** 3 - dataSizeGB);
+    const currDiff = Math.abs(curr.dataSize / 1024 ** 3 - dataSizeGB);
     return currDiff < prevDiff ? curr : prev;
   });
 
-  const closestDataSizeGB = closest.dataSize / (1024 ** 3);
+  const closestDataSizeGB = closest.dataSize / 1024 ** 3;
   const baseTimeMinutes = closest.executionTimeMs / 60000;
 
   // Scale based on data size (linear assumption)
@@ -185,7 +179,7 @@ function predictFromModel(
   }
 
   // Adjust for operation complexity
-  const complexityFactor = 1 + (operationCount * 0.1);
+  const complexityFactor = 1 + operationCount * 0.1;
   const adjustedThroughput = throughputPerCore / complexityFactor;
 
   const totalThroughput = adjustedThroughput * hardware.cpuCores;

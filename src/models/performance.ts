@@ -12,17 +12,19 @@ export interface PerformancePredictionRequest {
   workloadType?: string;
 }
 
+export interface ResourceUtilization {
+  cpu: number;
+  memory: number;
+  gpu?: number;
+  io: number;
+}
+
 export interface PerformancePredictionResult {
   metrics: PerformanceMetrics;
   predictions: {
     estimatedThroughputMBps: number;
     estimatedLatencyMs: number;
-    resourceUtilization: {
-      cpu: number;
-      memory: number;
-      gpu?: number;
-      io: number;
-    };
+    resourceUtilization: ResourceUtilization;
   };
   bottlenecks: string[];
   recommendations: string[];
@@ -58,9 +60,8 @@ export async function predictPerformance(
   );
 
   // Calculate latency (inverse of throughput, adjusted)
-  const estimatedLatencyMs = dataSize > 0
-    ? (dataSize / (1024 ** 2)) / estimatedThroughputMBps * 1000
-    : 0;
+  const estimatedLatencyMs =
+    dataSize > 0 ? (dataSize / 1024 ** 2 / estimatedThroughputMBps) * 1000 : 0;
 
   // Calculate overall score
   const overallScore = calculateOverallScore(
@@ -81,19 +82,10 @@ export async function predictPerformance(
   };
 
   // Detect bottlenecks
-  const bottlenecks = detectBottlenecks(
-    config,
-    hardware,
-    resourceUtilization,
-    metrics
-  );
+  const bottlenecks = detectBottlenecks(config, hardware, resourceUtilization, metrics);
 
   // Generate recommendations
-  const recommendations = generatePerformanceRecommendations(
-    config,
-    metrics,
-    bottlenecks
-  );
+  const recommendations = generatePerformanceRecommendations(config, metrics, bottlenecks);
 
   // Calculate confidence
   const confidence = 0.7; // Base confidence for model-based predictions
@@ -117,21 +109,26 @@ export async function predictPerformance(
 function calculateResourceUtilization(
   config: SparkConfig,
   hardware: HardwareContext
-): PerformancePredictionResult['predictions']['resourceUtilization'] {
+): ResourceUtilization {
   // CPU utilization
-  const requestedCores = (config.executor.instances ?? 1) * config.executor.cores + config.driver.cores;
+  const requestedCores =
+    (config.executor.instances ?? 1) * config.executor.cores + config.driver.cores;
   const cpu = Math.min((requestedCores / hardware.cpuCores) * 100, 100);
 
   // Memory utilization
   const executorMemGB = parseMemory(config.executor.memory);
   const driverMemGB = parseMemory(config.driver.memory);
-  const totalRequestedMem = (executorMemGB * (config.executor.instances ?? 1)) + driverMemGB;
+  const totalRequestedMem = executorMemGB * (config.executor.instances ?? 1) + driverMemGB;
   const memory = Math.min((totalRequestedMem / hardware.totalMemory) * 100, 100);
 
   // GPU utilization
-  const gpu = config.gpu?.enabled && hardware.gpuCount
-    ? Math.min(((config.gpu.amount ?? 1) * (config.executor.instances ?? 1) / hardware.gpuCount) * 100, 100)
-    : undefined;
+  const gpu =
+    config.gpu?.enabled && hardware.gpuCount
+      ? Math.min(
+          (((config.gpu.amount ?? 1) * (config.executor.instances ?? 1)) / hardware.gpuCount) * 100,
+          100
+        )
+      : undefined;
 
   // I/O utilization (estimated based on workload)
   const io = 50; // Placeholder - would need actual I/O metrics
@@ -152,7 +149,7 @@ function calculateCPUEfficiency(
 
   // Ideal executor cores: 4-6 for most workloads
   const idealCores = workloadType === 'ml-training' ? 8 : 5;
-  const coreEfficiency = 1 - Math.abs(executorCores - idealCores) / idealCores * 0.3;
+  const coreEfficiency = 1 - (Math.abs(executorCores - idealCores) / idealCores) * 0.3;
 
   // Parallelism efficiency
   const totalCores = executorCores * executorCount;
@@ -175,7 +172,7 @@ function calculateMemoryEfficiency(
   const executorMemGB = parseMemory(config.executor.memory);
   const totalExecutorMem = executorMemGB * (config.executor.instances ?? 1);
 
-  const dataSizeGB = dataSize / (1024 ** 3);
+  const dataSizeGB = dataSize / 1024 ** 3;
 
   // Memory should be 2-4x data size for optimal performance
   const idealMemory = dataSizeGB * 3;
@@ -258,11 +255,11 @@ function calculateThroughput(
 
   // Adjust for workload
   const workloadMultipliers: Record<string, number> = {
-    'etl': 1.5,
-    'analytics': 1.0,
+    etl: 1.5,
+    analytics: 1.0,
     'ml-training': 0.4,
     'ml-inference': 1.2,
-    'streaming': 1.3,
+    streaming: 1.3,
   };
 
   throughputPerCore *= workloadMultipliers[workloadType] ?? 1.0;
@@ -272,7 +269,7 @@ function calculateThroughput(
 
   // GPU acceleration
   if (gpuEfficiency && gpuEfficiency > 0) {
-    throughputPerCore *= (1 + gpuEfficiency * 2);
+    throughputPerCore *= 1 + gpuEfficiency * 2;
   }
 
   return throughputPerCore * totalCores;
@@ -295,9 +292,7 @@ function calculateOverallScore(
   };
 
   let score =
-    cpuEfficiency * weights.cpu +
-    memoryEfficiency * weights.memory +
-    ioEfficiency * weights.io;
+    cpuEfficiency * weights.cpu + memoryEfficiency * weights.memory + ioEfficiency * weights.io;
 
   if (gpuEfficiency !== undefined) {
     score += gpuEfficiency * weights.gpu;
@@ -312,35 +307,45 @@ function calculateOverallScore(
 function detectBottlenecks(
   config: SparkConfig,
   _hardware: HardwareContext,
-  utilization: any,
+  utilization: ResourceUtilization,
   metrics: PerformanceMetrics
 ): string[] {
   const bottlenecks: string[] = [];
 
   // CPU bottleneck
   if (utilization.cpu > 90) {
-    bottlenecks.push('CPU: High CPU utilization (>90%). Consider adding more executors or reducing cores per executor.');
+    bottlenecks.push(
+      'CPU: High CPU utilization (>90%). Consider adding more executors or reducing cores per executor.'
+    );
   }
 
   // Memory bottleneck
   if (utilization.memory > 85) {
-    bottlenecks.push('Memory: High memory utilization (>85%). Risk of OOM errors. Increase executor memory or add more executors.');
+    bottlenecks.push(
+      'Memory: High memory utilization (>85%). Risk of OOM errors. Increase executor memory or add more executors.'
+    );
   } else if (metrics.memoryEfficiency < 0.5) {
-    bottlenecks.push('Memory: Under-provisioned memory. Performance may suffer from excessive spilling.');
+    bottlenecks.push(
+      'Memory: Under-provisioned memory. Performance may suffer from excessive spilling.'
+    );
   }
 
   // GPU bottleneck
   if (utilization.gpu && utilization.gpu > 95) {
-    bottlenecks.push('GPU: GPU fully utilized. Consider adding more GPUs or optimizing GPU operations.');
+    bottlenecks.push(
+      'GPU: GPU fully utilized. Consider adding more GPUs or optimizing GPU operations.'
+    );
   }
 
   // I/O bottleneck
   if (metrics.ioEfficiency < 0.6) {
-    bottlenecks.push('I/O: Poor I/O efficiency. Consider using better file formats, enabling compression, or increasing I/O parallelism.');
+    bottlenecks.push(
+      'I/O: Poor I/O efficiency. Consider using better file formats, enabling compression, or increasing I/O parallelism.'
+    );
   }
 
   // Shuffle bottleneck
-  if (config.shuffle.partitions < (config.executor.cores * (config.executor.instances ?? 1)) * 2) {
+  if (config.shuffle.partitions < config.executor.cores * (config.executor.instances ?? 1) * 2) {
     bottlenecks.push('Shuffle: Too few shuffle partitions. Increase to at least 2-3x total cores.');
   }
 
@@ -364,19 +369,27 @@ function generatePerformanceRecommendations(
 
   // Efficiency-based recommendations
   if (metrics.cpuEfficiency < 0.7) {
-    recommendations.push('CPU efficiency is low. Adjust executor cores and count for better CPU utilization.');
+    recommendations.push(
+      'CPU efficiency is low. Adjust executor cores and count for better CPU utilization.'
+    );
   }
 
   if (metrics.memoryEfficiency < 0.7) {
-    recommendations.push('Memory efficiency is low. Review memory allocation and consider caching frequently used data.');
+    recommendations.push(
+      'Memory efficiency is low. Review memory allocation and consider caching frequently used data.'
+    );
   }
 
   if (metrics.ioEfficiency < 0.7) {
-    recommendations.push('I/O efficiency is low. Use columnar formats (Parquet), enable compression, and optimize shuffle operations.');
+    recommendations.push(
+      'I/O efficiency is low. Use columnar formats (Parquet), enable compression, and optimize shuffle operations.'
+    );
   }
 
   if (metrics.gpuEfficiency && metrics.gpuEfficiency < 0.6) {
-    recommendations.push('GPU efficiency is low. Enable RAPIDS acceleration and optimize data transfer to/from GPU.');
+    recommendations.push(
+      'GPU efficiency is low. Enable RAPIDS acceleration and optimize data transfer to/from GPU.'
+    );
   }
 
   // Configuration-specific recommendations
@@ -402,13 +415,17 @@ function parseMemory(memory: string): number {
   const match = memory.match(/^(\d+)([gmk])$/i);
   if (!match) return 0;
 
-  const value = parseInt(match?.[1] ?? "0");
-  const unit = match?.[2] ?? "g".toLowerCase();
+  const value = parseInt(match?.[1] ?? '0');
+  const unit = match?.[2] ?? 'g'.toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }

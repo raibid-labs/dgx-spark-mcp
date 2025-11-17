@@ -48,7 +48,7 @@ export class LifecycleManager {
         this.logger.debug(`Executing startup hook: ${hook.name}`);
         await hook.handler();
         this.logger.debug(`Startup hook completed: ${hook.name}`);
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error(`Startup hook failed: ${hook.name}`, error as Error);
         throw error;
       }
@@ -82,7 +82,7 @@ export class LifecycleManager {
 
       this.logger.info('Graceful shutdown complete');
       process.exit(0);
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Error during shutdown', error as Error);
       process.exit(1);
     }
@@ -100,7 +100,7 @@ export class LifecycleManager {
         this.logger.debug(`Executing shutdown hook: ${hook.name}`);
         await hook.handler();
         this.logger.debug(`Shutdown hook completed: ${hook.name}`);
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error(`Shutdown hook failed: ${hook.name}`, error as Error);
         // Continue with other hooks even if one fails
       }

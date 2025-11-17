@@ -77,7 +77,11 @@ export class TelemetryCollector {
   /**
    * Record a tool execution
    */
-  recordToolExecution(toolName: string, durationMs: number, status: 'success' | 'error' = 'success'): void {
+  recordToolExecution(
+    toolName: string,
+    durationMs: number,
+    status: 'success' | 'error' = 'success'
+  ): void {
     this.metrics.recordToolExecution(toolName, status, durationMs);
 
     this.logger.debug(`Tool execution: ${toolName}`, {
@@ -269,7 +273,7 @@ export async function measureAsync<T>(
     }
 
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     const duration = Date.now() - start;
 
     if (onComplete) {
@@ -295,7 +299,7 @@ export function measureSync<T>(fn: () => T, onComplete?: (duration: number) => v
     }
 
     return result;
-  } catch (error) {
+  } catch (error: unknown) {
     const duration = Date.now() - start;
 
     if (onComplete) {

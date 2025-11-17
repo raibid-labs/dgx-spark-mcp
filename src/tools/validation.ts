@@ -26,19 +26,16 @@ export interface ValidationError {
 /**
  * Validate tool arguments against schema
  */
-export function validateToolArgs<T>(
-  schema: ZodSchema<T>,
-  args: unknown
-): ValidationResult<T> {
+export function validateToolArgs<T>(schema: ZodSchema<T>, args: unknown): ValidationResult<T> {
   try {
     const data = schema.parse(args);
     return {
       success: true,
       data,
     };
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof ZodError) {
-      const errors: ValidationError[] = error.errors.map(err => ({
+      const errors: ValidationError[] = error.errors.map((err) => ({
         path: err.path.join('.'),
         message: err.message,
       }));
@@ -51,10 +48,12 @@ export function validateToolArgs<T>(
 
     return {
       success: false,
-      errors: [{
-        path: 'unknown',
-        message: 'Validation failed with unknown error',
-      }],
+      errors: [
+        {
+          path: 'unknown',
+          message: 'Validation failed with unknown error',
+        },
+      ],
     };
   }
 }
@@ -62,13 +61,13 @@ export function validateToolArgs<T>(
 /**
  * Get schema for tool by name
  */
-export function getToolSchema(toolName: string): ZodSchema<any> | null {
-  const schemas: Record<string, ZodSchema<any>> = {
-    'check_gpu_availability': CheckGPUAvailabilityArgsSchema,
-    'get_optimal_spark_config': GetOptimalSparkConfigArgsSchema,
-    'search_documentation': SearchDocumentationArgsSchema,
-    'estimate_resources': EstimateResourcesArgsSchema,
-    'get_system_health': GetSystemHealthArgsSchema,
+export function getToolSchema(toolName: string): ZodSchema<unknown> | null {
+  const schemas: Record<string, ZodSchema<unknown>> = {
+    check_gpu_availability: CheckGPUAvailabilityArgsSchema,
+    get_optimal_spark_config: GetOptimalSparkConfigArgsSchema,
+    search_documentation: SearchDocumentationArgsSchema,
+    estimate_resources: EstimateResourcesArgsSchema,
+    get_system_health: GetSystemHealthArgsSchema,
   };
 
   return schemas[toolName] || null;
@@ -82,9 +81,7 @@ export function formatValidationErrors(errors: ValidationError[]): string {
     return 'No validation errors';
   }
 
-  const formatted = errors.map(err =>
-    err.path ? `${err.path}: ${err.message}` : err.message
-  );
+  const formatted = errors.map((err) => (err.path ? `${err.path}: ${err.message}` : err.message));
 
   return `Validation errors:\n${formatted.join('\n')}`;
 }

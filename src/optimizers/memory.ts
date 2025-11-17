@@ -9,7 +9,15 @@ export interface MemoryCalculationRequest {
   partitionCount: number;
   executorCount?: number;
   totalMemoryGB?: number;
-  workloadType?: 'etl' | 'analytics' | 'ml-training' | 'ml-inference' | 'streaming' | 'graph' | 'sql' | 'mixed';
+  workloadType?:
+    | 'etl'
+    | 'analytics'
+    | 'ml-training'
+    | 'ml-inference'
+    | 'streaming'
+    | 'graph'
+    | 'sql'
+    | 'mixed';
   enableOffHeap?: boolean;
 }
 
@@ -29,7 +37,7 @@ export async function calculateMemoryConfig(
   request: MemoryCalculationRequest
 ): Promise<MemoryCalculationResult> {
   const dataSizeBytes = parseSize(request.dataSize);
-  const dataSizeGB = dataSizeBytes / (1024 ** 3);
+  const dataSizeGB = dataSizeBytes / 1024 ** 3;
 
   // Calculate memory per partition
   const avgPartitionSizeGB = dataSizeGB / request.partitionCount;
@@ -40,8 +48,8 @@ export async function calculateMemoryConfig(
 
   // Calculate executor memory
   // Rule of thumb: 3-4x partition size for compute-heavy, 2-3x for I/O heavy
-  const memoryMultiplier = request.workloadType === 'ml-training' ? 4 :
-                          request.workloadType === 'analytics' ? 3 : 2.5;
+  const memoryMultiplier =
+    request.workloadType === 'ml-training' ? 4 : request.workloadType === 'analytics' ? 3 : 2.5;
 
   let executorMemoryGB = Math.max(
     avgPartitionSizeGB * memoryMultiplier,
@@ -56,10 +64,7 @@ export async function calculateMemoryConfig(
   const memoryOverheadGB = Math.ceil(executorMemoryGB * overheadPercent);
 
   // Driver memory (usually 2-4x executor or 10% of total data, whichever is smaller)
-  let driverMemoryGB = Math.min(
-    executorMemoryGB * 2,
-    Math.max(dataSizeGB * 0.1, 8)
-  );
+  let driverMemoryGB = Math.min(executorMemoryGB * 2, Math.max(dataSizeGB * 0.1, 8));
   driverMemoryGB = Math.ceil(driverMemoryGB);
 
   // Off-heap memory for improved GC performance

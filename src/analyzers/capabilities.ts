@@ -51,6 +51,38 @@ export interface SystemCapabilitiesAnalysis {
   recommendations: string[];
 }
 
+interface HardwareAnalysis {
+  cpuCores: {
+    physical: number;
+    logical: number;
+  };
+  memoryGB: number;
+  gpuCount: number;
+  gpuTotalMemoryGB: number;
+  storageGB: number;
+  hasNVLink: boolean;
+  hasInfiniBand: boolean;
+  hasNVMe: boolean;
+}
+
+interface SparkAnalysis {
+  maxConcurrentJobs: number;
+  recommendedExecutors: {
+    cpuOnly: number;
+    withGPU: number;
+  };
+  recommendedExecutorCores: number;
+  recommendedExecutorMemoryGB: number;
+  maxShufflePartitions: number;
+}
+
+interface GPUAnalysis {
+  available: boolean;
+  rapidsAcceleration: boolean;
+  recommendedGPUsPerExecutor: number;
+  maxConcurrentGPUJobs: number;
+}
+
 /**
  * Analyze system capabilities based on hardware topology
  */
@@ -89,18 +121,17 @@ export async function analyzeCapabilities(): Promise<SystemCapabilitiesAnalysis>
 /**
  * Analyze hardware specs
  */
-function analyzeHardware(topology: SystemTopology) {
+function analyzeHardware(topology: SystemTopology): HardwareAnalysis {
   const memoryGB = Math.round(topology.memory.info.total / (1024 * 1024 * 1024));
   const storageGB = Math.round(topology.storage.totalCapacity / (1024 * 1024 * 1024));
 
   const gpuCount = topology.gpus?.length || 0;
-  const gpuTotalMemoryGB = topology.gpus?.reduce((sum, gpu) => {
-    return sum + gpu.memory.total / (1024 * 1024 * 1024);
-  }, 0) || 0;
+  const gpuTotalMemoryGB =
+    topology.gpus?.reduce((sum, gpu) => {
+      return sum + gpu.memory.total / (1024 * 1024 * 1024);
+    }, 0) || 0;
 
-  const hasNVLink = topology.gpus?.some(gpu =>
-    gpu.nvlinks && gpu.nvlinks.length > 0
-  ) || false;
+  const hasNVLink = topology.gpus?.some((gpu) => gpu.nvlinks && gpu.nvlinks.length > 0) || false;
 
   return {
     cpuCores: topology.cpu.cores,
@@ -117,7 +148,10 @@ function analyzeHardware(topology: SystemTopology) {
 /**
  * Analyze Spark capabilities
  */
-function analyzeSparkCapabilities(topology: SystemTopology, hardware: ReturnType<typeof analyzeHardware>) {
+function analyzeSparkCapabilities(
+  topology: SystemTopology,
+  hardware: HardwareAnalysis
+): SparkAnalysis {
   const physicalCores = topology.cpu.cores.physical;
   const memoryGB = hardware.memoryGB;
   const gpuCount = hardware.gpuCount;
@@ -138,7 +172,9 @@ function analyzeSparkCapabilities(topology: SystemTopology, hardware: ReturnType
   const recommendedExecutorsGPU = gpuCount > 0 ? gpuCount : recommendedExecutorsCPU;
 
   // Memory per executor (leave 10% overhead)
-  const recommendedExecutorMemoryGB = Math.floor((availableMemoryGB / recommendedExecutorsCPU) * 0.9);
+  const recommendedExecutorMemoryGB = Math.floor(
+    (availableMemoryGB / recommendedExecutorsCPU) * 0.9
+  );
 
   // Shuffle partitions (typically 2x cores)
   const maxShufflePartitions = availableCores * 2;
@@ -161,14 +197,13 @@ function analyzeSparkCapabilities(topology: SystemTopology, hardware: ReturnType
 /**
  * Analyze GPU capabilities
  */
-function analyzeGPUCapabilities(topology: SystemTopology) {
+function analyzeGPUCapabilities(topology: SystemTopology): GPUAnalysis {
   const gpuCount = topology.gpus?.length || 0;
   const available = gpuCount > 0;
 
   // Check for RAPIDS acceleration support (compute capability >= 6.0)
-  const rapidsAcceleration = topology.gpus?.every(gpu =>
-    gpu.computeCapability.major >= 6
-  ) || false;
+  const rapidsAcceleration =
+    topology.gpus?.every((gpu) => gpu.computeCapability.major >= 6) || false;
 
   // Recommended GPUs per executor (typically 1)
   const recommendedGPUsPerExecutor = 1;
@@ -187,11 +222,14 @@ function analyzeGPUCapabilities(topology: SystemTopology) {
 /**
  * Analyze framework support
  */
-function analyzeFrameworkSupport(topology: SystemTopology) {
+function analyzeFrameworkSupport(topology: SystemTopology): {
+  spark: boolean;
+  rapids: boolean;
+  tensorflow: boolean;
+  pytorch: boolean;
+} {
   const hasGPU = (topology.gpus?.length || 0) > 0;
-  const hasModernGPU = topology.gpus?.every(gpu =>
-    gpu.computeCapability.major >= 6
-  ) || false;
+  const hasModernGPU = topology.gpus?.every((gpu) => gpu.computeCapability.major >= 6) || false;
 
   return {
     spark: true, // Always supported
@@ -204,7 +242,15 @@ function analyzeFrameworkSupport(topology: SystemTopology) {
 /**
  * Estimate performance characteristics
  */
-function estimatePerformance(topology: SystemTopology, _hardware: ReturnType<typeof analyzeHardware>) {
+function estimatePerformance(
+  topology: SystemTopology,
+  _hardware: HardwareAnalysis
+): {
+  expectedDataThroughputGBps: number;
+  expectedComputePerformanceTFLOPS?: number;
+  networkBandwidthGbps: number;
+  storageBandwidthGBps: number;
+} {
   // Network bandwidth estimate
   const hasInfiniBand = topology.capabilities.hasInfiniBand;
   const networkBandwidthGbps = hasInfiniBand ? 200 : 10; // IB HDR or 10GbE
@@ -239,17 +285,21 @@ function estimatePerformance(topology: SystemTopology, _hardware: ReturnType<typ
  */
 function generateRecommendations(
   topology: SystemTopology,
-  spark: ReturnType<typeof analyzeSparkCapabilities>,
-  gpu: ReturnType<typeof analyzeGPUCapabilities>
+  spark: SparkAnalysis,
+  gpu: GPUAnalysis
 ): string[] {
   const recommendations: string[] = [];
 
   // GPU recommendations
   if (gpu.available) {
     if (gpu.rapidsAcceleration) {
-      recommendations.push('RAPIDS acceleration available - consider using GPU-accelerated Spark for ETL workloads');
+      recommendations.push(
+        'RAPIDS acceleration available - consider using GPU-accelerated Spark for ETL workloads'
+      );
     }
-    recommendations.push(`Configure ${gpu.recommendedGPUsPerExecutor} GPU per Spark executor for optimal performance`);
+    recommendations.push(
+      `Configure ${gpu.recommendedGPUsPerExecutor} GPU per Spark executor for optimal performance`
+    );
   } else {
     recommendations.push('No GPUs detected - CPU-only Spark configuration recommended');
   }
@@ -261,9 +311,13 @@ function generateRecommendations(
   }
 
   // Executor recommendations
-  recommendations.push(`Use ${spark.recommendedExecutors.cpuOnly} executors with ${spark.recommendedExecutorCores} cores each for CPU workloads`);
+  recommendations.push(
+    `Use ${spark.recommendedExecutors.cpuOnly} executors with ${spark.recommendedExecutorCores} cores each for CPU workloads`
+  );
   if (gpu.available) {
-    recommendations.push(`Use ${spark.recommendedExecutors.withGPU} executors for GPU-accelerated workloads`);
+    recommendations.push(
+      `Use ${spark.recommendedExecutors.withGPU} executors for GPU-accelerated workloads`
+    );
   }
 
   // Network recommendations
@@ -273,13 +327,13 @@ function generateRecommendations(
 
   // Storage recommendations
   if (topology.capabilities.hasNVMe) {
-    recommendations.push('NVMe storage detected - configure Spark to use local storage for shuffle');
+    recommendations.push(
+      'NVMe storage detected - configure Spark to use local storage for shuffle'
+    );
   }
 
   // NVLink recommendations
-  const hasNVLink = topology.gpus?.some(gpu =>
-    gpu.nvlinks && gpu.nvlinks.length > 0
-  ) || false;
+  const hasNVLink = topology.gpus?.some((gpu) => gpu.nvlinks && gpu.nvlinks.length > 0) || false;
 
   if (hasNVLink) {
     recommendations.push('NVLink detected - enable GPU-to-GPU direct transfers for multi-GPU jobs');

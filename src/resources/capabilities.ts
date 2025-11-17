@@ -14,7 +14,8 @@ export function getCapabilitiesResourceDescriptor(): ResourceDescriptor {
   return {
     uri: SystemResourceURIs.CAPABILITIES,
     name: 'System Capabilities',
-    description: 'Analyzed system capabilities including Spark recommendations, GPU support, and performance estimates',
+    description:
+      'Analyzed system capabilities including Spark recommendations, GPU support, and performance estimates',
     mimeType: 'application/json',
   };
 }
@@ -25,11 +26,13 @@ export function getCapabilitiesResourceDescriptor(): ResourceDescriptor {
 export async function readCapabilitiesResource(): Promise<ResourceContent[]> {
   const capabilities = await analyzeCapabilities();
 
-  return [{
-    uri: SystemResourceURIs.CAPABILITIES,
-    mimeType: 'application/json',
-    text: JSON.stringify(capabilities, null, 2),
-  }];
+  return [
+    {
+      uri: SystemResourceURIs.CAPABILITIES,
+      mimeType: 'application/json',
+      text: JSON.stringify(capabilities, null, 2),
+    },
+  ];
 }
 
 /**

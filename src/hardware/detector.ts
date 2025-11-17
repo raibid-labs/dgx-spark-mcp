@@ -17,7 +17,13 @@ import { detectCPU } from './cpu.js';
 import { detectMemory } from './memory.js';
 import { detectStorage } from './storage.js';
 import { detectNetwork } from './network.js';
-import { getHardwareSnapshot, refreshHardwareSnapshot, clearHardwareCache, getHardwareCacheStats, setHardwareCacheTTL } from './topology.js';
+import {
+  getHardwareSnapshot,
+  refreshHardwareSnapshot,
+  clearHardwareCache,
+  getHardwareCacheStats,
+  setHardwareCacheTTL,
+} from './topology.js';
 
 /**
  * Detection results for all hardware components
@@ -45,16 +51,16 @@ export async function detectAll(options?: DetectionOptions): Promise<AllHardware
   const includeNetwork = options?.includeNetwork !== false;
 
   // Run detections in parallel where possible
-  const detectionPromises: Promise<any>[] = [];
+  const detectionPromises: Promise<unknown>[] = [];
 
-  let gpuPromise: Promise<GPUDetectionResult> | null = null;
+  let gpuPromise: Promise<GPUDetectionResult | null> | null = null;
   let cpuPromise: Promise<CPUDetectionResult> | null = null;
   let memoryPromise: Promise<MemoryDetectionResult> | null = null;
   let storagePromise: Promise<StorageDetectionResult> | null = null;
   let networkPromise: Promise<NetworkDetectionResult> | null = null;
 
   if (includeGPU) {
-    gpuPromise = detectGPUs(true).catch(() => null as any);
+    gpuPromise = detectGPUs(true).catch(() => null);
     detectionPromises.push(gpuPromise);
   }
 
@@ -83,12 +89,20 @@ export async function detectAll(options?: DetectionOptions): Promise<AllHardware
 
   const totalDetectionTime = Date.now() - startTime;
 
+  const [gpu, cpu, memory, storage, network] = await Promise.all([
+    gpuPromise || Promise.resolve(undefined),
+    cpuPromise || Promise.reject(new Error('CPU detection required')),
+    memoryPromise || Promise.reject(new Error('Memory detection required')),
+    storagePromise || Promise.reject(new Error('Storage detection required')),
+    networkPromise || Promise.reject(new Error('Network detection required')),
+  ]);
+
   return {
-    gpu: gpuPromise ? await gpuPromise : undefined,
-    cpu: cpuPromise ? await cpuPromise : null as any,
-    memory: memoryPromise ? await memoryPromise : null as any,
-    storage: storagePromise ? await storagePromise : null as any,
-    network: networkPromise ? await networkPromise : null as any,
+    gpu: gpu || undefined,
+    cpu,
+    memory,
+    storage,
+    network,
     timestamp: Date.now(),
     totalDetectionTime,
   };
@@ -118,7 +132,7 @@ export function clearCache(): void {
 /**
  * Get cache statistics
  */
-export function getCacheStats() {
+export function getCacheStats(): ReturnType<typeof getHardwareCacheStats> {
   return getHardwareCacheStats();
 }
 

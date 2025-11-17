@@ -33,12 +33,21 @@ export function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<a\s+href=["']([^"']+)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)');
 
   // Convert images
-  markdown = markdown.replace(/<img\s+src=["']([^"']+)["'][^>]*alt=["']([^"']+)["'][^>]*>/gi, '![$2]($1)');
-  markdown = markdown.replace(/<img\s+alt=["']([^"']+)["'][^>]*src=["']([^"']+)["'][^>]*>/gi, '![$1]($2)');
+  markdown = markdown.replace(
+    /<img\s+src=["']([^"']+)["'][^>]*alt=["']([^"']+)["'][^>]*>/gi,
+    '![$2]($1)'
+  );
+  markdown = markdown.replace(
+    /<img\s+alt=["']([^"']+)["'][^>]*src=["']([^"']+)["'][^>]*>/gi,
+    '![$1]($2)'
+  );
   markdown = markdown.replace(/<img\s+src=["']([^"']+)["'][^>]*>/gi, '![]($1)');
 
   // Convert code blocks
-  markdown = markdown.replace(/<pre[^>]*><code[^>]*class=["']language-(\w+)["'][^>]*>(.*?)<\/code><\/pre>/gis, '```$1\n$2\n```\n\n');
+  markdown = markdown.replace(
+    /<pre[^>]*><code[^>]*class=["']language-(\w+)["'][^>]*>(.*?)<\/code><\/pre>/gis,
+    '```$1\n$2\n```\n\n'
+  );
   markdown = markdown.replace(/<pre[^>]*><code[^>]*>(.*?)<\/code><\/pre>/gis, '```\n$1\n```\n\n');
   markdown = markdown.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`');
 
@@ -46,10 +55,14 @@ export function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
     const items = content.match(/<li[^>]*>(.*?)<\/li>/gi);
     if (items) {
-      return items.map((item: string) => {
-        const text = item.replace(/<li[^>]*>(.*?)<\/li>/i, '$1').trim();
-        return `- ${text}`;
-      }).join('\n') + '\n\n';
+      return (
+        items
+          .map((item: string) => {
+            const text = item.replace(/<li[^>]*>(.*?)<\/li>/i, '$1').trim();
+            return `- ${text}`;
+          })
+          .join('\n') + '\n\n'
+      );
     }
     return match;
   });
@@ -57,10 +70,14 @@ export function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
     const items = content.match(/<li[^>]*>(.*?)<\/li>/gi);
     if (items) {
-      return items.map((item: string, index: number) => {
-        const text = item.replace(/<li[^>]*>(.*?)<\/li>/i, '$1').trim();
-        return `${index + 1}. ${text}`;
-      }).join('\n') + '\n\n';
+      return (
+        items
+          .map((item: string, index: number) => {
+            const text = item.replace(/<li[^>]*>(.*?)<\/li>/i, '$1').trim();
+            return `${index + 1}. ${text}`;
+          })
+          .join('\n') + '\n\n'
+      );
     }
     return match;
   });
@@ -166,7 +183,10 @@ export function cleanMarkdown(markdown: string): string {
   cleaned = cleaned.replace(/```\n([^\n])/g, '```\n\n$1');
 
   // Trim whitespace from lines
-  cleaned = cleaned.split('\n').map(line => line.trimEnd()).join('\n');
+  cleaned = cleaned
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n');
 
   return cleaned.trim();
 }

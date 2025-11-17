@@ -79,11 +79,37 @@ export function createMockCPU(overrides?: Partial<CPU>): CPU {
       l3: 268435456,
     },
     flags: [
-      'fpu', 'vme', 'de', 'pse', 'tsc', 'msr', 'pae', 'mce',
-      'cx8', 'apic', 'sep', 'mtrr', 'pge', 'mca', 'cmov',
-      'pat', 'pse36', 'clflush', 'mmx', 'fxsr', 'sse', 'sse2',
-      'ht', 'syscall', 'nx', 'mmxext', 'pdpe1gb', 'rdtscp',
-      'lm', 'avx', 'avx2',
+      'fpu',
+      'vme',
+      'de',
+      'pse',
+      'tsc',
+      'msr',
+      'pae',
+      'mce',
+      'cx8',
+      'apic',
+      'sep',
+      'mtrr',
+      'pge',
+      'mca',
+      'cmov',
+      'pat',
+      'pse36',
+      'clflush',
+      'mmx',
+      'fxsr',
+      'sse',
+      'sse2',
+      'ht',
+      'syscall',
+      'nx',
+      'mmxext',
+      'pdpe1gb',
+      'rdtscp',
+      'lm',
+      'avx',
+      'avx2',
     ],
     ...overrides,
   };
@@ -175,10 +201,19 @@ export function createMockNetwork(overrides?: Partial<Network>): Network {
   };
 }
 
+interface MockHardwareTopology {
+  gpus: GPU[];
+  cpu: CPU;
+  memory: MemoryInfo;
+  storage: Storage;
+  network: Network;
+  timestamp: string;
+}
+
 /**
  * Create a complete mock hardware topology
  */
-export function createMockHardwareTopology() {
+export function createMockHardwareTopology(): MockHardwareTopology {
   return {
     gpus: [
       createMockGPU({ id: 0 }),
@@ -212,15 +247,29 @@ export async function waitFor(
   throw new Error(`Condition not met within ${timeout}ms`);
 }
 
+interface CallRecord<T extends (...args: unknown[]) => unknown> {
+  args: Parameters<T>;
+  result?: ReturnType<T>;
+  error?: Error;
+}
+
+interface CallTracker<T extends (...args: unknown[]) => unknown> {
+  fn: T;
+  calls: CallRecord<T>[];
+  callCount: () => number;
+  lastCall: () => CallRecord<T> | undefined;
+  reset: () => void;
+}
+
 /**
  * Create a spy that tracks calls
  */
-export function createCallTracker<T extends (...args: any[]) => any>() {
-  const calls: Array<{ args: Parameters<T>; result?: ReturnType<T>; error?: Error }> = [];
+export function createCallTracker<T extends (...args: unknown[]) => unknown>(): CallTracker<T> {
+  const calls: CallRecord<T>[] = [];
 
   return {
     fn: ((...args: Parameters<T>) => {
-      const call: any = { args };
+      const call: CallRecord<T> = { args };
       calls.push(call);
       return call.result;
     }) as T,

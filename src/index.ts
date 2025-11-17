@@ -26,7 +26,7 @@ async function main(): Promise<void> {
     // Create and start server
     const server = new DGXSparkMCPServer(config, logger);
     await server.start();
-  } catch (error) {
+  } catch (error: unknown) {
     if (error instanceof ConfigurationError) {
       console.error('Configuration error:', error.message);
       process.exit(1);

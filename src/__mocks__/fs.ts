@@ -2,16 +2,27 @@
  * Mock fs module for testing
  */
 
+interface StatResult {
+  isFile: () => boolean;
+  isDirectory: () => boolean;
+  size: number;
+}
+
 export const mockFileSystem: Map<string, string> = new Map([
-  ['/proc/meminfo', `MemTotal:       1048576000 kB
+  [
+    '/proc/meminfo',
+    `MemTotal:       1048576000 kB
 MemFree:        1006632296 kB
 MemAvailable:   1006632296 kB
 Buffers:              0 kB
 Cached:               0 kB
 SwapCached:           0 kB
 SwapTotal:            0 kB
-SwapFree:             0 kB`],
-  ['/proc/cpuinfo', `processor	: 0
+SwapFree:             0 kB`,
+  ],
+  [
+    '/proc/cpuinfo',
+    `processor	: 0
 vendor_id	: AuthenticAMD
 cpu family	: 23
 model		: 49
@@ -19,7 +30,8 @@ model name	: AMD EPYC 7742 64-Core Processor
 stepping	: 0
 microcode	: 0x8301055
 cpu MHz		: 2250.000
-cache size	: 512 KB`],
+cache size	: 512 KB`,
+  ],
 ]);
 
 export const promises = {
@@ -38,12 +50,13 @@ export const promises = {
     return [];
   },
 
-  async stat(path: string): Promise<any> {
-    if (mockFileSystem.has(path)) {
+  async stat(path: string): Promise<StatResult> {
+    const content = mockFileSystem.get(path);
+    if (content !== undefined) {
       return {
         isFile: () => true,
         isDirectory: () => false,
-        size: mockFileSystem.get(path)!.length,
+        size: content.length,
       };
     }
     throw new Error(`ENOENT: no such file or directory, stat '${path}'`);

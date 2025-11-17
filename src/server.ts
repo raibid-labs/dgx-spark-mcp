@@ -135,7 +135,7 @@ export class DGXSparkMCPServer {
       try {
         const resources = await listAllResources();
         return { resources };
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('Failed to list resources', error as Error);
         throw error;
       }
@@ -149,9 +149,11 @@ export class DGXSparkMCPServer {
       try {
         const contents = await readResource(uri);
         return { contents };
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('Failed to read resource', error as Error, { uri });
-        throw new Error(`Failed to read resource ${uri}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw new Error(
+          `Failed to read resource ${uri}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
       }
     });
 
@@ -162,7 +164,7 @@ export class DGXSparkMCPServer {
       try {
         const tools = listAllTools();
         return { tools };
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('Failed to list tools', error as Error);
         throw error;
       }
@@ -178,16 +180,22 @@ export class DGXSparkMCPServer {
       try {
         const result = await callTool(toolName, args);
         return result;
-      } catch (error) {
+      } catch (error: unknown) {
         this.logger.error('Failed to call tool', error as Error, { tool: toolName });
         return {
-          content: [{
-            type: 'text' as const,
-            text: JSON.stringify({
-              error: `Failed to execute tool ${toolName}`,
-              message: error instanceof Error ? error.message : 'Unknown error',
-            }, null, 2),
-          }],
+          content: [
+            {
+              type: 'text' as const,
+              text: JSON.stringify(
+                {
+                  error: `Failed to execute tool ${toolName}`,
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                },
+                null,
+                2
+              ),
+            },
+          ],
           isError: true,
         };
       }
@@ -211,7 +219,7 @@ export class DGXSparkMCPServer {
       } else {
         throw new Error(`Unsupported transport: ${this.config.mcp.transport}`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       this.logger.error('Failed to start MCP server', error as Error);
       throw error;
     }

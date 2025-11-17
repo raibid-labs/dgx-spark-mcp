@@ -8,7 +8,7 @@ import { CacheEntry } from '../types/topology.js';
  * Simple in-memory cache for hardware detection results
  */
 export class HardwareCache {
-  private cache: Map<string, CacheEntry<any>> = new Map();
+  private cache: Map<string, CacheEntry<unknown>> = new Map();
   private defaultTTL: number = 60000; // 60 seconds
 
   /**

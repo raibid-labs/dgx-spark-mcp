@@ -4,9 +4,10 @@
  */
 
 import { getHardwareSnapshot } from '../hardware/topology.js';
-import { analyzeCapabilities } from '../analyzers/capabilities.js';
+import { analyzeCapabilities, SystemCapabilitiesAnalysis } from '../analyzers/capabilities.js';
 import type { EstimateResourcesArgs, ToolCallResponse } from '../types/tools.js';
 import { parseDataSize, formatBytes } from '../types/spark.js';
+import type { SystemTopology } from '../types/topology.js';
 
 export interface ResourceEstimateResult {
   description: string;
@@ -43,7 +44,7 @@ export async function estimateResources(args: EstimateResourcesArgs): Promise<To
     if (dataSize) {
       try {
         dataSizeBytes = parseDataSize(dataSize);
-      } catch (error) {
+      } catch {
         // Invalid data size format, continue without it
       }
     }
@@ -71,20 +72,28 @@ export async function estimateResources(args: EstimateResourcesArgs): Promise<To
     };
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: 'Failed to estimate resources',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              error: 'Failed to estimate resources',
+              message: error instanceof Error ? error.message : 'Unknown error',
+            },
+            null,
+            2
+          ),
+        },
+      ],
       isError: true,
     };
   }
@@ -97,13 +106,15 @@ function estimateFromDescription(
   description: string,
   dataSizeBytes: number | undefined,
   computeType: string,
-  _topology: any,
-  capabilities: any
-) {
+  _topology: SystemTopology,
+  capabilities: SystemCapabilitiesAnalysis
+): ResourceEstimateResult['estimatedRequirements'] {
   const lowerDesc = description.toLowerCase();
 
   // Detect workload characteristics from description
-  const isMachineLearning = /\b(ml|machine learning|train|model|neural|deep learning)\b/.test(lowerDesc);
+  const isMachineLearning = /\b(ml|machine learning|train|model|neural|deep learning)\b/.test(
+    lowerDesc
+  );
   const isLargeScale = /\b(large|massive|big|petabyte|terabyte|billion|million)\b/.test(lowerDesc);
   const isRealTime = /\b(real-time|streaming|live|online)\b/.test(lowerDesc);
   const requiresGPU = /\b(gpu|cuda|rapids|tensor)\b/.test(lowerDesc) || computeType === 'gpu';
@@ -150,7 +161,8 @@ function estimateFromDescription(
     }
 
     // Adjust executors if data is very large
-    if (dataGB > 1000) { // > 1TB
+    if (dataGB > 1000) {
+      // > 1TB
       executors = Math.min(executors * 2, capabilities.spark.recommendedExecutors.cpuOnly);
     }
   }
@@ -173,9 +185,9 @@ function estimateFromDescription(
  */
 function checkFeasibility(
   estimate: ReturnType<typeof estimateFromDescription>,
-  _topology: any,
-  capabilities: any
-) {
+  _topology: SystemTopology,
+  capabilities: SystemCapabilitiesAnalysis
+): ResourceEstimateResult['feasibility'] {
   const limitations: string[] = [];
   let canRun = true;
   let reason = 'System has sufficient resources for this workload';
@@ -186,7 +198,9 @@ function checkFeasibility(
 
   if (requiredMemoryGB > availableMemoryGB * 0.9) {
     canRun = false;
-    limitations.push(`Insufficient memory: need ${requiredMemoryGB}GB, have ${availableMemoryGB}GB`);
+    limitations.push(
+      `Insufficient memory: need ${requiredMemoryGB}GB, have ${availableMemoryGB}GB`
+    );
     reason = 'System does not have enough memory';
   }
 
@@ -224,7 +238,7 @@ function checkFeasibility(
 function generateRecommendations(
   estimate: ReturnType<typeof estimateFromDescription>,
   feasibility: ReturnType<typeof checkFeasibility>,
-  capabilities: any
+  capabilities: SystemCapabilitiesAnalysis
 ): string[] {
   const recommendations: string[] = [];
 
@@ -232,12 +246,12 @@ function generateRecommendations(
     recommendations.push('Consider reducing the workload size or splitting it into smaller jobs');
     recommendations.push('Use dynamic allocation to better manage resources');
 
-    if (feasibility.limitations?.some(l => l.includes('memory'))) {
+    if (feasibility.limitations?.some((l) => l.includes('memory'))) {
       recommendations.push('Reduce executor memory or number of executors');
       recommendations.push('Enable disk-based spilling for large datasets');
     }
 
-    if (feasibility.limitations?.some(l => l.includes('GPU'))) {
+    if (feasibility.limitations?.some((l) => l.includes('GPU'))) {
       recommendations.push('Consider using CPU-only execution');
       recommendations.push('Schedule job when more GPUs are available');
     }
@@ -245,15 +259,15 @@ function generateRecommendations(
     // System can run the workload
     recommendations.push('System resources are sufficient for this workload');
 
-    if (estimate.gpus && capabilities.gpu.rapidsAcceleration) {
+    if (estimate.gpus && capabilities.gpu.rapidsAcceleration === true) {
       recommendations.push('Enable RAPIDS for GPU acceleration');
     }
 
-    if (capabilities.hardware.hasNVMe) {
+    if (capabilities.hardware.hasNVMe === true) {
       recommendations.push('Configure local storage on NVMe for optimal I/O performance');
     }
 
-    if (capabilities.hardware.hasInfiniBand) {
+    if (capabilities.hardware.hasInfiniBand === true) {
       recommendations.push('Leverage InfiniBand for fast shuffle operations');
     }
   }

@@ -2,11 +2,35 @@
  * Network detection module (simplified for TypeScript strict mode)
  */
 
-import { Network, NetworkDetectionResult, NetworkInterface, InfiniBandDevice, InfiniBandPort, NetworkBandwidth } from '../types/network.js';
+import {
+  Network,
+  NetworkDetectionResult,
+  NetworkInterface,
+  InfiniBandDevice,
+  InfiniBandPort,
+  NetworkBandwidth,
+} from '../types/network.js';
 import { executeCommand } from '../utils/exec.js';
 import { readSysFile, readNumericSysFile } from '../utils/proc-parser.js';
 
-export async function detectNetwork(includeInfiniBand: boolean = true): Promise<NetworkDetectionResult> {
+/**
+ * IP command JSON interface
+ */
+interface IPInterfaceData {
+  ifname?: string;
+  link_type?: string;
+  operstate?: string;
+  address?: string;
+  mtu?: number;
+  addr_info?: Array<{
+    family?: string;
+    local?: string;
+  }>;
+}
+
+export async function detectNetwork(
+  includeInfiniBand: boolean = true
+): Promise<NetworkDetectionResult> {
   const startTime = Date.now();
 
   const interfaces = await detectNetworkInterfaces();
@@ -14,7 +38,7 @@ export async function detectNetwork(includeInfiniBand: boolean = true): Promise<
   const bandwidth = await detectBandwidth(interfaces);
 
   const totalInterfaces = interfaces.length;
-  const activeInterfaces = interfaces.filter(iface => iface.state.toLowerCase() === 'up').length;
+  const activeInterfaces = interfaces.filter((iface) => iface.state.toLowerCase() === 'up').length;
 
   const network: Network = {
     interfaces,
@@ -39,33 +63,35 @@ async function detectNetworkInterfaces(): Promise<NetworkInterface[]> {
   }
 
   try {
-    const data = JSON.parse(result.stdout);
+    const data = JSON.parse(result.stdout) as unknown[];
     const interfaces: NetworkInterface[] = [];
 
-    for (const iface of data) {
+    for (const item of data) {
+      const iface = item as IPInterfaceData;
       const ipv4: string[] = [];
       const ipv6: string[] = [];
 
       if (iface.addr_info && Array.isArray(iface.addr_info)) {
         for (const addr of iface.addr_info) {
-          if (addr.family === 'inet') {
+          if (addr.family === 'inet' && typeof addr.local === 'string') {
             ipv4.push(addr.local);
-          } else if (addr.family === 'inet6') {
+          } else if (addr.family === 'inet6' && typeof addr.local === 'string') {
             ipv6.push(addr.local);
           }
         }
       }
 
-      const stats = await getInterfaceStats(iface.ifname);
+      const ifaceName = typeof iface.ifname === 'string' ? iface.ifname : '';
+      const stats = await getInterfaceStats(ifaceName);
 
       interfaces.push({
-        name: iface.ifname,
-        type: iface.link_type || 'unknown',
-        state: iface.operstate || 'unknown',
-        mac: iface.address || '',
-        mtu: iface.mtu || 0,
-        speed: await getInterfaceSpeed(iface.ifname),
-        duplex: await getInterfaceDuplex(iface.ifname),
+        name: ifaceName,
+        type: typeof iface.link_type === 'string' ? iface.link_type : 'unknown',
+        state: typeof iface.operstate === 'string' ? iface.operstate : 'unknown',
+        mac: typeof iface.address === 'string' ? iface.address : '',
+        mtu: typeof iface.mtu === 'number' ? iface.mtu : 0,
+        speed: await getInterfaceSpeed(ifaceName),
+        duplex: await getInterfaceDuplex(ifaceName),
         ipv4: ipv4.length > 0 ? ipv4 : undefined,
         ipv6: ipv6.length > 0 ? ipv6 : undefined,
         ...stats,
@@ -73,7 +99,7 @@ async function detectNetworkInterfaces(): Promise<NetworkInterface[]> {
     }
 
     return interfaces;
-  } catch (error) {
+  } catch {
     return detectNetworkInterfacesFallback();
   }
 }
@@ -220,8 +246,8 @@ async function detectInfiniBandDevices(): Promise<InfiniBandDevice[] | undefined
       }
 
       currentPort = {
-        caName: currentDevice.name!,
-        caType: currentDevice.type!,
+        caName: currentDevice.name,
+        caType: currentDevice.type,
         port: parseInt(portMatch[1], 10),
         state: '',
         physicalState: '',
@@ -270,7 +296,9 @@ async function detectInfiniBandDevices(): Promise<InfiniBandDevice[] | undefined
   return devices.length > 0 ? devices : undefined;
 }
 
-async function detectBandwidth(interfaces: NetworkInterface[]): Promise<NetworkBandwidth[] | undefined> {
+async function detectBandwidth(
+  interfaces: NetworkInterface[]
+): Promise<NetworkBandwidth[] | undefined> {
   const bandwidth: NetworkBandwidth[] = [];
 
   for (const iface of interfaces) {
@@ -290,15 +318,17 @@ async function detectBandwidth(interfaces: NetworkInterface[]): Promise<NetworkB
 
 export async function hasInfiniBand(): Promise<boolean> {
   const result = await detectNetwork(true);
-  return result.network.infinibandDevices !== undefined && result.network.infinibandDevices.length > 0;
+  return (
+    result.network.infinibandDevices !== undefined && result.network.infinibandDevices.length > 0
+  );
 }
 
 export async function getActiveInterfaces(): Promise<NetworkInterface[]> {
   const result = await detectNetwork(false);
-  return result.network.interfaces.filter(iface => iface.state.toLowerCase() === 'up');
+  return result.network.interfaces.filter((iface) => iface.state.toLowerCase() === 'up');
 }
 
 export async function getInterface(name: string): Promise<NetworkInterface | null> {
   const result = await detectNetwork(false);
-  return result.network.interfaces.find(iface => iface.name === name) || null;
+  return result.network.interfaces.find((iface) => iface.name === name) || null;
 }

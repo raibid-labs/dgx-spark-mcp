@@ -59,7 +59,7 @@ export const DocsResourceURIs = {
   TROUBLESHOOTING: 'dgx://docs/spark/troubleshooting',
 } as const;
 
-export type HardwareResourceURI = typeof HardwareResourceURIs[keyof typeof HardwareResourceURIs];
-export type SystemResourceURI = typeof SystemResourceURIs[keyof typeof SystemResourceURIs];
-export type DocsResourceURI = typeof DocsResourceURIs[keyof typeof DocsResourceURIs];
+export type HardwareResourceURI = (typeof HardwareResourceURIs)[keyof typeof HardwareResourceURIs];
+export type SystemResourceURI = (typeof SystemResourceURIs)[keyof typeof SystemResourceURIs];
+export type DocsResourceURI = (typeof DocsResourceURIs)[keyof typeof DocsResourceURIs];
 export type ResourceURI = HardwareResourceURI | SystemResourceURI | DocsResourceURI | string;

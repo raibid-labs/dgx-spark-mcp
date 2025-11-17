@@ -3,11 +3,7 @@
  */
 
 import { GPU, GPUDetectionResult, GPUTopology } from '../types/gpu.js';
-import {
-  isNvidiaSmiAvailable,
-  queryGPUs,
-  buildGPUTopology,
-} from './nvidia-smi.js';
+import { isNvidiaSmiAvailable, queryGPUs, buildGPUTopology } from './nvidia-smi.js';
 
 /**
  * Detect all NVIDIA GPUs in the system
@@ -18,7 +14,9 @@ export async function detectGPUs(includeTopology: boolean = false): Promise<GPUD
   // Check if nvidia-smi is available
   const nvidiaSmiAvailable = await isNvidiaSmiAvailable();
   if (!nvidiaSmiAvailable) {
-    throw new Error('nvidia-smi not found. Ensure NVIDIA drivers are installed and nvidia-smi is in PATH.');
+    throw new Error(
+      'nvidia-smi not found. Ensure NVIDIA drivers are installed and nvidia-smi is in PATH.'
+    );
   }
 
   // Query GPU information
@@ -49,7 +47,7 @@ export async function detectGPUs(includeTopology: boolean = false): Promise<GPUD
  */
 export async function getGPU(gpuId: number): Promise<GPU | null> {
   const result = await detectGPUs(false);
-  return result.gpus.find(gpu => gpu.id === gpuId) || null;
+  return result.gpus.find((gpu) => gpu.id === gpuId) || null;
 }
 
 /**
@@ -59,7 +57,7 @@ export async function getGPUCount(): Promise<number> {
   try {
     const result = await detectGPUs(false);
     return result.gpus.length;
-  } catch (error) {
+  } catch {
     return 0;
   }
 }

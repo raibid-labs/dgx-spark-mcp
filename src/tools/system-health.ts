@@ -5,6 +5,8 @@
 
 import { getHardwareSnapshot } from '../hardware/topology.js';
 import type { GetSystemHealthArgs, ToolCallResponse } from '../types/tools.js';
+import type { SystemTopology } from '../types/topology.js';
+import type { GPU } from '../types/gpu.js';
 
 export interface SystemHealthResult {
   status: 'healthy' | 'degraded' | 'critical';
@@ -23,7 +25,7 @@ export interface SystemHealthResult {
 interface HealthComponent {
   status: 'healthy' | 'warning' | 'critical';
   message: string;
-  metrics?: Record<string, any>;
+  metrics?: Record<string, unknown>;
 }
 
 interface HealthAlert {
@@ -94,20 +96,28 @@ export async function getSystemHealth(args?: GetSystemHealthArgs): Promise<ToolC
     };
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: 'Failed to check system health',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              error: 'Failed to check system health',
+              message: error instanceof Error ? error.message : 'Unknown error',
+            },
+            null,
+            2
+          ),
+        },
+      ],
       isError: true,
     };
   }
@@ -116,13 +126,18 @@ export async function getSystemHealth(args?: GetSystemHealthArgs): Promise<ToolC
 /**
  * Check CPU health
  */
-function checkCPUHealth(topology: any, verbose: boolean) {
+function checkCPUHealth(
+  topology: SystemTopology,
+  verbose: boolean
+): { component: HealthComponent; alerts: HealthAlert[] } {
   const alerts: HealthAlert[] = [];
-  const metrics = verbose ? {
-    cores: topology.cpu.cores,
-    modelName: topology.cpu.modelName,
-    frequency: topology.cpu.frequency,
-  } : undefined;
+  const metrics = verbose
+    ? {
+        cores: topology.cpu.cores,
+        modelName: topology.cpu.modelName,
+        frequency: topology.cpu.frequency,
+      }
+    : undefined;
 
   // CPU is generally healthy if detected properly
   const component: HealthComponent = {
@@ -137,17 +152,22 @@ function checkCPUHealth(topology: any, verbose: boolean) {
 /**
  * Check memory health
  */
-function checkMemoryHealth(topology: any, verbose: boolean) {
+function checkMemoryHealth(
+  topology: SystemTopology,
+  verbose: boolean
+): { component: HealthComponent; alerts: HealthAlert[] } {
   const alerts: HealthAlert[] = [];
   const totalGB = Math.round(topology.memory.info.total / (1024 * 1024 * 1024));
   const availableGB = Math.round(topology.memory.info.available / (1024 * 1024 * 1024));
   const usedPercent = ((totalGB - availableGB) / totalGB) * 100;
 
-  const metrics = verbose ? {
-    totalGB,
-    availableGB,
-    usedPercent: Math.round(usedPercent),
-  } : undefined;
+  const metrics = verbose
+    ? {
+        totalGB,
+        availableGB,
+        usedPercent: Math.round(usedPercent),
+      }
+    : undefined;
 
   let status: HealthComponent['status'] = 'healthy';
   let message = `${availableGB}GB available of ${totalGB}GB total (${Math.round(100 - usedPercent)}% free)`;
@@ -179,44 +199,50 @@ function checkMemoryHealth(topology: any, verbose: boolean) {
 /**
  * Check GPU health
  */
-function checkGPUHealth(gpus: any[], verbose: boolean) {
+function checkGPUHealth(
+  gpus: GPU[],
+  verbose: boolean
+): { component: HealthComponent; alerts: HealthAlert[] } {
   const alerts: HealthAlert[] = [];
   let worstStatus: HealthComponent['status'] = 'healthy';
 
-  const gpuMetrics = gpus.map(gpu => {
+  const gpuMetrics = gpus
+    .map((gpu) => {
+      // Check temperature
+      if (gpu.temperature.current > gpu.temperature.slowdown - 10) {
+        worstStatus = 'warning';
+        alerts.push({
+          severity: 'warning',
+          component: 'gpu',
+          message: `GPU ${gpu.id} temperature high (${gpu.temperature.current}°C)`,
+          recommendation: 'Check cooling system',
+        });
+      }
 
-    // Check temperature
-    if (gpu.temperature.current > gpu.temperature.slowdown - 10) {
-      worstStatus = 'warning';
-      alerts.push({
-        severity: 'warning',
-        component: 'gpu',
-        message: `GPU ${gpu.id} temperature high (${gpu.temperature.current}°C)`,
-        recommendation: 'Check cooling system',
-      });
-    }
+      // Check memory usage
+      const memoryUsedPercent = (gpu.memory.used / gpu.memory.total) * 100;
+      if (memoryUsedPercent > 95) {
+        worstStatus = 'critical';
+        alerts.push({
+          severity: 'critical',
+          component: 'gpu',
+          message: `GPU ${gpu.id} memory usage critical (${Math.round(memoryUsedPercent)}%)`,
+          recommendation: 'Reduce GPU workload',
+        });
+      }
 
-    // Check memory usage
-    const memoryUsedPercent = (gpu.memory.used / gpu.memory.total) * 100;
-    if (memoryUsedPercent > 95) {
-      worstStatus = 'critical';
-      alerts.push({
-        severity: 'critical',
-        component: 'gpu',
-        message: `GPU ${gpu.id} memory usage critical (${Math.round(memoryUsedPercent)}%)`,
-        recommendation: 'Reduce GPU workload',
-      });
-    }
-
-    return verbose ? {
-      id: gpu.id,
-      name: gpu.name,
-      temperature: gpu.temperature.current,
-      utilization: gpu.utilization.gpu,
-      memoryUsedPercent: Math.round(memoryUsedPercent),
-      power: gpu.power.current,
-    } : null;
-  }).filter(m => m !== null);
+      return verbose
+        ? {
+            id: gpu.id,
+            name: gpu.name,
+            temperature: gpu.temperature.current,
+            utilization: gpu.utilization.gpu,
+            memoryUsedPercent: Math.round(memoryUsedPercent),
+            power: gpu.power.current,
+          }
+        : null;
+    })
+    .filter((m) => m !== null);
 
   const message = `${gpus.length} GPU(s) detected, ${alerts.length} alert(s)`;
 
@@ -232,19 +258,24 @@ function checkGPUHealth(gpus: any[], verbose: boolean) {
 /**
  * Check storage health
  */
-function checkStorageHealth(topology: any, verbose: boolean) {
+function checkStorageHealth(
+  topology: SystemTopology,
+  verbose: boolean
+): { component: HealthComponent; alerts: HealthAlert[] } {
   const alerts: HealthAlert[] = [];
   const totalGB = Math.round(topology.storage.totalCapacity / (1024 * 1024 * 1024));
 
-  const metrics = verbose ? {
-    totalCapacityGB: totalGB,
-    devices: topology.storage.devices.length,
-    hasNVMe: topology.capabilities.hasNVMe,
-  } : undefined;
+  const metrics = verbose
+    ? {
+        totalCapacityGB: totalGB,
+        blockDevices: topology.storage.blockDevices.length,
+        hasNVMe: topology.capabilities.hasNVMe,
+      }
+    : undefined;
 
   const component: HealthComponent = {
     status: 'healthy',
-    message: `${topology.storage.devices.length} storage device(s), ${totalGB}GB total capacity`,
+    message: `${topology.storage.blockDevices.length} storage device(s), ${totalGB}GB total capacity`,
     metrics,
   };
 
@@ -254,13 +285,18 @@ function checkStorageHealth(topology: any, verbose: boolean) {
 /**
  * Check network health
  */
-function checkNetworkHealth(topology: any, verbose: boolean) {
+function checkNetworkHealth(
+  topology: SystemTopology,
+  verbose: boolean
+): { component: HealthComponent; alerts: HealthAlert[] } {
   const alerts: HealthAlert[] = [];
 
-  const metrics = verbose ? {
-    totalInterfaces: topology.network.totalInterfaces,
-    hasInfiniBand: topology.capabilities.hasInfiniBand,
-  } : undefined;
+  const metrics = verbose
+    ? {
+        totalInterfaces: topology.network.totalInterfaces,
+        hasInfiniBand: topology.capabilities.hasInfiniBand,
+      }
+    : undefined;
 
   const component: HealthComponent = {
     status: 'healthy',
@@ -274,8 +310,10 @@ function checkNetworkHealth(topology: any, verbose: boolean) {
 /**
  * Determine overall system status
  */
-function determineOverallStatus(components: SystemHealthResult['components']): SystemHealthResult['status'] {
-  const statuses = Object.values(components).map(c => c.status);
+function determineOverallStatus(
+  components: SystemHealthResult['components']
+): SystemHealthResult['status'] {
+  const statuses = Object.values(components).map((c) => c.status);
 
   if (statuses.includes('critical')) {
     return 'critical';
@@ -304,8 +342,8 @@ function generateHealthSummary(
     parts.push('System has critical issues that need immediate attention.');
   }
 
-  const criticalAlerts = alerts.filter(a => a.severity === 'critical').length;
-  const warningAlerts = alerts.filter(a => a.severity === 'warning').length;
+  const criticalAlerts = alerts.filter((a) => a.severity === 'critical').length;
+  const warningAlerts = alerts.filter((a) => a.severity === 'warning').length;
 
   if (criticalAlerts > 0) {
     parts.push(`${criticalAlerts} critical alert(s).`);

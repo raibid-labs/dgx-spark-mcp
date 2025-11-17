@@ -70,7 +70,10 @@ export async function parseMemInfo(): Promise<Map<string, number>> {
 /**
  * Parse key-value file format (common in /proc and /sys)
  */
-export async function parseKeyValueFile(path: string, separator: string = ':'): Promise<Map<string, string>> {
+export async function parseKeyValueFile(
+  path: string,
+  separator: string = ':'
+): Promise<Map<string, string>> {
   try {
     const content = await fs.readFile(path, 'utf-8');
     const data = new Map<string, string>();
@@ -88,7 +91,7 @@ export async function parseKeyValueFile(path: string, separator: string = ':'): 
     }
 
     return data;
-  } catch (error) {
+  } catch {
     return new Map();
   }
 }
@@ -100,7 +103,7 @@ export async function readSysFile(path: string): Promise<string | null> {
   try {
     const content = await fs.readFile(path, 'utf-8');
     return content.trim();
-  } catch (error) {
+  } catch {
     return null;
   }
 }

@@ -11,6 +11,7 @@ import {
   IOPattern,
   GPUUtilization,
   ShuffleIntensity,
+  HistoricalWorkloadMetrics,
 } from '../types/workload.js';
 import { WorkloadType } from '../types/spark-config.js';
 import { parseSize } from '../optimizers/memory.js';
@@ -181,8 +182,8 @@ export async function classifyWorkload(
     .toLowerCase();
 
   // Match against patterns
-  const patternScores = WORKLOAD_PATTERNS.map(pattern => {
-    const matchCount = pattern.indicators.filter(indicator =>
+  const patternScores = WORKLOAD_PATTERNS.map((pattern) => {
+    const matchCount = pattern.indicators.filter((indicator) =>
       analysisText.includes(indicator.toLowerCase())
     ).length;
 
@@ -196,20 +197,20 @@ export async function classifyWorkload(
   // Get best match
   patternScores.sort((a, b) => b.score - a.score);
   const bestMatch = patternScores[0] ?? {
-    pattern: WORKLOAD_PATTERNS[0], score: 0, matches: 0
+    pattern: WORKLOAD_PATTERNS[0],
+    score: 0,
+    matches: 0,
   };
 
   // Determine workload type
-  const workloadType: WorkloadType = bestMatch.score > 0.1
-    ? bestMatch?.pattern?.recommendedType ?? "mixed"
-    : 'mixed';
+  const workloadType: WorkloadType =
+    bestMatch.score > 0.1 ? (bestMatch?.pattern?.recommendedType ?? 'mixed') : 'mixed';
 
   // Analyze data size
   let dataSize = 0;
   if (request.dataSize) {
-    dataSize = typeof request.dataSize === 'number'
-      ? request.dataSize
-      : parseSize(request.dataSize);
+    dataSize =
+      typeof request.dataSize === 'number' ? request.dataSize : parseSize(request.dataSize);
   } else if (request.historicalMetrics?.previousDataSize) {
     dataSize = request.historicalMetrics.previousDataSize;
   }
@@ -240,11 +241,7 @@ export async function classifyWorkload(
     bestMatch.pattern?.typicalCharacteristics?.shuffleIntensity
   );
 
-  const memoryFootprint = estimateMemoryFootprint(
-    dataSize,
-    workloadType,
-    computeIntensity
-  );
+  const memoryFootprint = estimateMemoryFootprint(dataSize, workloadType, computeIntensity);
 
   const characteristics: WorkloadCharacteristics = {
     type: workloadType,
@@ -261,10 +258,7 @@ export async function classifyWorkload(
   const recommendedResources = recommendResources(characteristics);
 
   // Generate optimization hints
-  const optimizationHints = generateOptimizationHints(
-    characteristics,
-    request.historicalMetrics
-  );
+  const optimizationHints = generateOptimizationHints(characteristics, request.historicalMetrics);
 
   return {
     characteristics,
@@ -313,7 +307,8 @@ export async function predictGPUUtilization(request: {
     case 'etl':
       utilization = 'none';
       percentage = 10;
-      recommendation = 'GPU not typically beneficial for ETL. Consider for specific transformations.';
+      recommendation =
+        'GPU not typically beneficial for ETL. Consider for specific transformations.';
       break;
 
     default:
@@ -348,9 +343,9 @@ function determineComputeIntensity(
     'fold',
   ];
 
-  const heavyOpCount = operations?.filter(op =>
-    computeHeavyOps.some(heavy => op.toLowerCase().includes(heavy))
-  ).length ?? 0;
+  const heavyOpCount =
+    operations?.filter((op) => computeHeavyOps.some((heavy) => op.toLowerCase().includes(heavy)))
+      .length ?? 0;
 
   if (workloadType === 'ml-training' || workloadType === 'graph') {
     return 'very-high';
@@ -380,9 +375,9 @@ function determineIOPattern(
   }
 
   const randomOps = ['join', 'lookup', 'sample', 'random'];
-  const hasRandomOps = operations?.some(op =>
-    randomOps.some(random => op.toLowerCase().includes(random))
-  ) ?? false;
+  const hasRandomOps =
+    operations?.some((op) => randomOps.some((random) => op.toLowerCase().includes(random))) ??
+    false;
 
   if (hasRandomOps || workloadType === 'analytics' || workloadType === 'graph') {
     return 'random';
@@ -399,18 +394,9 @@ function determineGPUUtilization(
   analysisText: string,
   defaultUtilization?: GPUUtilization
 ): GPUUtilization {
-  const gpuKeywords = [
-    'gpu',
-    'cuda',
-    'rapids',
-    'tensor',
-    'deep learning',
-    'neural network',
-  ];
+  const gpuKeywords = ['gpu', 'cuda', 'rapids', 'tensor', 'deep learning', 'neural network'];
 
-  const hasGPUKeywords = gpuKeywords.some(keyword =>
-    analysisText.includes(keyword)
-  );
+  const hasGPUKeywords = gpuKeywords.some((keyword) => analysisText.includes(keyword));
 
   if (hasGPUKeywords || workloadType === 'ml-training') {
     return 'high';
@@ -428,7 +414,7 @@ function determineGPUUtilization(
  */
 function determineShuffleIntensity(
   workloadType: WorkloadType,
-  historicalMetrics: any,
+  historicalMetrics: HistoricalWorkloadMetrics | undefined,
   operations?: string[],
   defaultIntensity?: ShuffleIntensity
 ): ShuffleIntensity {
@@ -443,9 +429,9 @@ function determineShuffleIntensity(
   }
 
   const shuffleOps = ['join', 'groupby', 'aggregate', 'distinct', 'repartition', 'coalesce'];
-  const shuffleOpCount = operations?.filter(op =>
-    shuffleOps.some(shuffle => op.toLowerCase().includes(shuffle))
-  ).length ?? 0;
+  const shuffleOpCount =
+    operations?.filter((op) => shuffleOps.some((shuffle) => op.toLowerCase().includes(shuffle)))
+      .length ?? 0;
 
   if (workloadType === 'graph') return 'extreme';
   if (shuffleOpCount > 5 || workloadType === 'analytics') return 'heavy';
@@ -463,7 +449,7 @@ function estimateMemoryFootprint(
   workloadType: WorkloadType,
   computeIntensity: ComputeIntensity
 ): WorkloadCharacteristics['memoryFootprint'] {
-  const dataSizeGB = dataSize / (1024 ** 3);
+  const dataSizeGB = dataSize / 1024 ** 3;
 
   // Memory multipliers based on workload
   let memoryMultiplier = 2.0;
@@ -500,11 +486,16 @@ function estimateMemoryFootprint(
 /**
  * Recommend resources based on characteristics
  */
-function recommendResources(characteristics: WorkloadCharacteristics): any {
-  const dataSizeGB = characteristics.dataSize / (1024 ** 3);
+function recommendResources(
+  characteristics: WorkloadCharacteristics
+): WorkloadClassificationResult['recommendedResources'] {
+  const dataSizeGB = characteristics.dataSize / 1024 ** 3;
 
   // Base recommendations
-  let executorMemoryGB = Math.max(8, Math.ceil(characteristics.memoryFootprint.estimatedPeakGB / 4));
+  let executorMemoryGB = Math.max(
+    8,
+    Math.ceil(characteristics.memoryFootprint.estimatedPeakGB / 4)
+  );
   let executorCores = 5;
   let executorCount = 4;
   let gpuCount: number | undefined;
@@ -553,55 +544,58 @@ function recommendResources(characteristics: WorkloadCharacteristics): any {
  */
 function generateOptimizationHints(
   characteristics: WorkloadCharacteristics,
-  _historicalMetrics: any
+  _historicalMetrics: HistoricalWorkloadMetrics | undefined
 ): string[] {
   const hints: string[] = [];
 
   // Shuffle optimization
-  if (characteristics.shuffleIntensity === 'heavy' || characteristics.shuffleIntensity === 'extreme') {
-    hints.push('High shuffle detected. Consider increasing shuffle partitions and enabling adaptive execution.');
-    hints.push('Use broadcast joins where possible to reduce shuffle.');
+  if (
+    characteristics.shuffleIntensity === 'heavy' ||
+    characteristics.shuffleIntensity === 'extreme'
+  ) {
+    hints.push(
+      'High shuffle detected. Consider increasing shuffle partitions and enabling adaptive execution.'
+    );
+    hints.push('Use disk-based shuffle for large datasets to prevent OOM errors.');
   }
 
   // Memory optimization
   if (characteristics.memoryFootprint.spillRisk === 'high') {
-    hints.push('High spill risk. Increase executor memory or reduce partition size.');
+    hints.push(
+      `High memory pressure detected. Estimated peak: ${characteristics.memoryFootprint.estimatedPeakGB.toFixed(1)}GB.`
+    );
+    hints.push('Consider increasing executor memory or reducing partition sizes.');
   }
 
   // GPU optimization
-  if (characteristics.gpuUtilization === 'high' || characteristics.gpuUtilization === 'full') {
-    hints.push('Enable RAPIDS for GPU-accelerated processing.');
-    hints.push('Use GPU memory pooling to reduce allocation overhead.');
-  }
-
-  // Compute optimization
-  if (characteristics.computeIntensity === 'very-high') {
-    hints.push('Compute-intensive workload. Consider CPU with high clock speed or GPU acceleration.');
+  if (characteristics.gpuUtilization === 'high' || characteristics.gpuUtilization === 'medium') {
+    hints.push('Workload can benefit from GPU acceleration. Consider using RAPIDS Spark.');
   }
 
   // I/O optimization
   if (characteristics.ioPattern === 'random') {
-    hints.push('Random I/O pattern detected. Use columnar formats (Parquet) and enable predicate pushdown.');
-  } else if (characteristics.ioPattern === 'streaming') {
-    hints.push('Streaming workload. Use structured streaming with appropriate trigger intervals.');
+    hints.push(
+      'Random I/O pattern detected. Ensure data is partitioned appropriately for optimal access.'
+    );
   }
 
-  // Workload-specific hints
-  switch (characteristics.type) {
-    case 'ml-training':
-      hints.push('Cache training data to avoid re-reading from disk.');
-      hints.push('Use checkpointing for long iterative algorithms.');
-      break;
+  // Compute optimization
+  if (characteristics.computeIntensity === 'very-high') {
+    hints.push(
+      'Very high compute intensity. Maximize CPU cores per executor for better parallelism.'
+    );
+  }
 
-    case 'analytics':
-      hints.push('Enable cost-based optimizer (CBO) for complex queries.');
-      hints.push('Consider data skipping with Z-ordering or partitioning.');
-      break;
+  // Streaming-specific
+  if (characteristics.type === 'streaming') {
+    hints.push('For streaming workloads, tune trigger interval and checkpoint frequency.');
+  }
 
-    case 'etl':
-      hints.push('Use efficient file formats with compression.');
-      hints.push('Partition output data for downstream query performance.');
-      break;
+  // Cache recommendations
+  if (characteristics.memoryFootprint.cacheRequirementGB) {
+    hints.push(
+      `Consider caching intermediate results. Estimated cache requirement: ${characteristics.memoryFootprint.cacheRequirementGB.toFixed(1)}GB.`
+    );
   }
 
   return hints;

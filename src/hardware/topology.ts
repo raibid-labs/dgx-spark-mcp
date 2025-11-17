@@ -2,7 +2,12 @@
  * System topology orchestrator
  */
 
-import { SystemTopology, SystemCapabilities, HardwareSnapshot, DetectionOptions } from '../types/topology.js';
+import {
+  SystemTopology,
+  SystemCapabilities,
+  HardwareSnapshot,
+  DetectionOptions,
+} from '../types/topology.js';
 import { detectGPUs, hasNVIDIAGPUs } from './gpu.js';
 import { detectCPU, hasNUMA, hasVirtualizationSupport } from './cpu.js';
 import { detectMemory } from './memory.js';
@@ -38,7 +43,7 @@ export async function buildSystemTopology(options?: DetectionOptions): Promise<S
   if (includeGPU) {
     try {
       gpuResult = await detectGPUs(true);
-    } catch (error) {
+    } catch {
       // GPU detection failed, continue without GPUs
       gpuResult = null;
     }
@@ -125,7 +130,9 @@ async function getKernelVersion(): Promise<string> {
  * Get OS information
  */
 async function getOSInfo(): Promise<string> {
-  const result = await executeCommand('cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d \'"\'');
+  const result = await executeCommand(
+    "cat /etc/os-release | grep PRETTY_NAME | cut -d= -f2 | tr -d '\"'"
+  );
   if (result.exitCode === 0 && result.stdout) {
     return result.stdout;
   }
@@ -189,7 +196,9 @@ export async function getHardwareSnapshot(options?: DetectionOptions): Promise<H
 /**
  * Refresh hardware snapshot (invalidate cache and re-detect)
  */
-export async function refreshHardwareSnapshot(options?: DetectionOptions): Promise<HardwareSnapshot> {
+export async function refreshHardwareSnapshot(
+  options?: DetectionOptions
+): Promise<HardwareSnapshot> {
   // Invalidate cache
   hardwareCache.invalidate(CacheKeys.SYSTEM_TOPOLOGY);
 
@@ -204,7 +213,7 @@ export async function getHardwareComponent<T>(
   _component: 'gpu' | 'cpu' | 'memory' | 'storage' | 'network',
   detectFn: () => Promise<T>,
   cacheKey: string,
-  useCache: boolean = true,
+  useCache = true,
   cacheTTL?: number
 ): Promise<T> {
   // Check cache
@@ -236,7 +245,7 @@ export function clearHardwareCache(): void {
 /**
  * Get cache statistics
  */
-export function getHardwareCacheStats() {
+export function getHardwareCacheStats(): ReturnType<typeof hardwareCache.getStats> {
   return hardwareCache.getStats();
 }
 

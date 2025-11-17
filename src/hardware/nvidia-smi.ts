@@ -16,7 +16,9 @@ export async function isNvidiaSmiAvailable(): Promise<boolean> {
  * Get NVIDIA driver version
  */
 export async function getDriverVersion(): Promise<string | null> {
-  const result = await executeCommand('nvidia-smi --query-gpu=driver_version --format=csv,noheader -i 0');
+  const result = await executeCommand(
+    'nvidia-smi --query-gpu=driver_version --format=csv,noheader -i 0'
+  );
   if (result.exitCode !== 0) return null;
   const lines = result.stdout.split('\n');
   return lines[0] || null;
@@ -26,7 +28,9 @@ export async function getDriverVersion(): Promise<string | null> {
  * Get CUDA version
  */
 export async function getCudaVersion(): Promise<string | null> {
-  const result = await executeCommand('nvidia-smi --query-gpu=cuda_version --format=csv,noheader -i 0');
+  const result = await executeCommand(
+    'nvidia-smi --query-gpu=cuda_version --format=csv,noheader -i 0'
+  );
   if (result.exitCode !== 0) return null;
   const lines = result.stdout.split('\n');
   return lines[0] || null;
@@ -68,14 +72,14 @@ export async function queryGPUs(): Promise<GPU[]> {
   }
 
   const gpus: GPU[] = [];
-  const lines = result.stdout.split('\n').filter(line => line.trim() !== '');
+  const lines = result.stdout.split('\n').filter((line) => line.trim() !== '');
 
   // Get driver and CUDA versions once
-  const driverVersion = await getDriverVersion() || 'unknown';
-  const cudaVersion = await getCudaVersion() || 'unknown';
+  const driverVersion = (await getDriverVersion()) || 'unknown';
+  const cudaVersion = (await getCudaVersion()) || 'unknown';
 
   for (const line of lines) {
-    const values = line.split(',').map(v => v.trim());
+    const values = line.split(',').map((v) => v.trim());
     if (values.length < fields.length) continue;
 
     const capStr = values[18] || '0.0';
@@ -136,10 +140,14 @@ export async function getNVLinkTopology(gpuCount: number): Promise<number[][]> {
 
   if (result.exitCode !== 0) {
     // NVLink not available, return empty matrix
-    return Array(gpuCount).fill(null).map(() => Array(gpuCount).fill(0));
+    return Array(gpuCount)
+      .fill(null)
+      .map(() => Array(gpuCount).fill(0));
   }
 
-  const matrix: number[][] = Array(gpuCount).fill(null).map(() => Array(gpuCount).fill(0));
+  const matrix: number[][] = Array(gpuCount)
+    .fill(null)
+    .map(() => Array(gpuCount).fill(0));
   const lines = result.stdout.split('\n');
 
   // Parse nvidia-smi topo output
@@ -154,7 +162,7 @@ export async function getNVLinkTopology(gpuCount: number): Promise<number[][]> {
       const parts = trimmed.split(/\s+/);
       gpuIds = parts.slice(1).map((p, i) => {
         const match = p.match(/GPU(\d+)/);
-        return match && match[1] ? parseInt(match[1], 10) : i;
+        return match?.[1] ? parseInt(match[1], 10) : i;
       });
       inMatrix = true;
       continue;
@@ -163,20 +171,24 @@ export async function getNVLinkTopology(gpuCount: number): Promise<number[][]> {
     if (inMatrix && trimmed.startsWith('GPU')) {
       const parts = trimmed.split(/\s+/);
       const sourceGpuMatch = parts[0]?.match(/GPU(\d+)/);
-      if (!sourceGpuMatch || !sourceGpuMatch[1]) continue;
+      if (!sourceGpuMatch?.[1]) continue;
 
       const sourceGpu = parseInt(sourceGpuMatch[1], 10);
       const connections = parts.slice(1);
 
       connections.forEach((conn, idx) => {
         if (idx >= gpuIds.length) return;
-        const targetGpu = gpuIds[idx]!;
+        const targetGpu = gpuIds[idx];
+        if (targetGpu === undefined) return;
 
         // Parse NVLink connection
         const nvMatch = conn.match(/NV(\d+)/i);
-        if (nvMatch && nvMatch[1]) {
+        if (nvMatch?.[1]) {
           const linkCount = parseInt(nvMatch[1], 10);
-          matrix[sourceGpu]![targetGpu] = linkCount * 25;
+          const sourceRow = matrix[sourceGpu];
+          if (sourceRow) {
+            sourceRow[targetGpu] = linkCount * 25;
+          }
         }
       });
     }
@@ -198,10 +210,10 @@ export async function getPCIeTopology(): Promise<PCIeTopology[]> {
   }
 
   const topology: PCIeTopology[] = [];
-  const lines = result.stdout.split('\n').filter(line => line.trim() !== '');
+  const lines = result.stdout.split('\n').filter((line) => line.trim() !== '');
 
   for (const line of lines) {
-    const values = line.split(',').map(v => v.trim());
+    const values = line.split(',').map((v) => v.trim());
     if (values.length < 5) continue;
 
     topology.push({

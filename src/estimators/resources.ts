@@ -9,7 +9,9 @@ import {
   ComputeEstimate,
   StorageEstimate,
   TimeEstimate,
+  HardwareContext,
 } from '../types/estimation.js';
+import { WorkloadCharacteristics } from '../types/workload.js';
 import { classifyWorkload } from '../analyzers/workload.js';
 // import { analyzeIOPattern } from '../analyzers/io-pattern.js';
 import { parseSize } from '../optimizers/memory.js';
@@ -25,10 +27,9 @@ export async function estimateResources(
   // Parse data size
   let dataSizeBytes = 0;
   if (request.dataSize) {
-    dataSizeBytes = typeof request.dataSize === 'number'
-      ? request.dataSize
-      : parseSize(request.dataSize);
-    assumptions.push(`Data size: ${(dataSizeBytes / (1024 ** 3)).toFixed(2)} GB`);
+    dataSizeBytes =
+      typeof request.dataSize === 'number' ? request.dataSize : parseSize(request.dataSize);
+    assumptions.push(`Data size: ${(dataSizeBytes / 1024 ** 3).toFixed(2)} GB`);
   }
 
   // Classify workload if not already done
@@ -44,7 +45,7 @@ export async function estimateResources(
   }
 
   // Get hardware context
-  const hardware = request.hardware ?? {
+  const hardware: HardwareContext = request.hardware ?? {
     cpuCores: 96,
     totalMemory: 512,
     gpuCount: 8,
@@ -58,34 +59,16 @@ export async function estimateResources(
   );
 
   // Estimate memory requirements
-  const memory = estimateMemory(
-    dataSizeBytes,
-    workloadCharacteristics,
-    hardware
-  );
+  const memory = estimateMemory(dataSizeBytes, workloadCharacteristics, hardware);
 
   // Estimate compute requirements
-  const compute = estimateCompute(
-    dataSizeBytes,
-    workloadCharacteristics,
-    hardware
-  );
+  const compute = estimateCompute(dataSizeBytes, workloadCharacteristics, hardware);
 
   // Estimate storage requirements
-  const storage = estimateStorage(
-    dataSizeBytes,
-    workloadCharacteristics,
-    request.operations ?? []
-  );
+  const storage = estimateStorage(dataSizeBytes, workloadCharacteristics, request.operations ?? []);
 
   // Estimate execution time
-  const time = estimateTime(
-    dataSizeBytes,
-    workloadCharacteristics,
-    compute,
-    storage,
-    hardware
-  );
+  const time = estimateTime(dataSizeBytes, workloadCharacteristics, compute, storage, hardware);
 
   // Calculate confidence based on available information
   const confidence = calculateConfidence(request, workloadCharacteristics);
@@ -105,21 +88,21 @@ export async function estimateResources(
  */
 function estimateMemory(
   dataSizeBytes: number,
-  workloadCharacteristics: any,
-  hardware: any
+  workloadCharacteristics: WorkloadCharacteristics | undefined,
+  hardware: HardwareContext
 ): MemoryEstimate {
-  const dataSizeGB = dataSizeBytes / (1024 ** 3);
+  const dataSizeGB = dataSizeBytes / 1024 ** 3;
 
   // Memory multiplier based on workload type
   const memoryMultipliers: Record<string, number> = {
     'ml-training': 4.0,
     'ml-inference': 2.0,
-    'analytics': 2.5,
-    'etl': 2.0,
-    'streaming': 1.5,
-    'graph': 3.5,
-    'sql': 2.5,
-    'mixed': 2.5,
+    analytics: 2.5,
+    etl: 2.0,
+    streaming: 1.5,
+    graph: 3.5,
+    sql: 2.5,
+    mixed: 2.5,
   };
 
   const workloadType = workloadCharacteristics?.type ?? 'mixed';
@@ -136,10 +119,7 @@ function estimateMemory(
   const executorTotalGB = peakMemoryGB - driverMemoryGB;
 
   // Assume 4-8 executors by default
-  const executorCount = Math.min(
-    Math.max(4, Math.ceil(hardware.cpuCores / 12)),
-    16
-  );
+  const executorCount = Math.min(Math.max(4, Math.ceil(hardware.cpuCores / 12)), 16);
 
   const executorMemoryGB = executorTotalGB / executorCount;
 
@@ -185,15 +165,14 @@ function estimateMemory(
  */
 function estimateCompute(
   dataSizeBytes: number,
-  workloadCharacteristics: any,
-  hardware: any
+  workloadCharacteristics: WorkloadCharacteristics | undefined,
+  hardware: HardwareContext
 ): ComputeEstimate {
-  const dataSizeGB = dataSizeBytes / (1024 ** 3);
+  const dataSizeGB = dataSizeBytes / 1024 ** 3;
   const workloadType = workloadCharacteristics?.type ?? 'mixed';
 
   // Determine executor cores based on workload
-  const executorCores = workloadType === 'ml-training' ? 8 :
-                       workloadType === 'streaming' ? 4 : 5;
+  const executorCores = workloadType === 'ml-training' ? 8 : workloadType === 'streaming' ? 4 : 5;
 
   // Calculate executor count
   const maxExecutors = Math.floor(hardware.cpuCores / executorCores);
@@ -210,10 +189,7 @@ function estimateCompute(
   const gpuUtilization = workloadCharacteristics?.gpuUtilization ?? 'none';
 
   if (gpuUtilization === 'high' || gpuUtilization === 'full') {
-    const gpuCount = Math.min(
-      Math.ceil(executorCount / 2),
-      hardware.gpuCount ?? 0
-    );
+    const gpuCount = Math.min(Math.ceil(executorCount / 2), hardware.gpuCount ?? 0);
 
     if (gpuCount > 0) {
       gpuRequirement = {
@@ -233,9 +209,13 @@ function estimateCompute(
   // Estimate CPU utilization
   const computeIntensity = workloadCharacteristics?.computeIntensity ?? 'medium';
   const cpuUtilizationPercent =
-    computeIntensity === 'very-high' ? 95 :
-    computeIntensity === 'high' ? 85 :
-    computeIntensity === 'medium' ? 70 : 50;
+    computeIntensity === 'very-high'
+      ? 95
+      : computeIntensity === 'high'
+        ? 85
+        : computeIntensity === 'medium'
+          ? 70
+          : 50;
 
   return {
     executorCores,
@@ -252,39 +232,42 @@ function estimateCompute(
  */
 function estimateStorage(
   dataSizeBytes: number,
-  workloadCharacteristics: any,
+  workloadCharacteristics: WorkloadCharacteristics | undefined,
   operations: string[]
 ): StorageEstimate {
-  const dataSizeGB = dataSizeBytes / (1024 ** 3);
+  const dataSizeGB = dataSizeBytes / 1024 ** 3;
 
   const inputDataGB = dataSizeGB;
 
   // Estimate intermediate data (transformations create intermediate datasets)
-  const transformationCount = operations.filter(op =>
-    ['map', 'filter', 'flatmap', 'transform'].some(t => op.toLowerCase().includes(t))
+  const transformationCount = operations.filter((op) =>
+    ['map', 'filter', 'flatmap', 'transform'].some((t) => op.toLowerCase().includes(t))
   ).length;
 
   const intermediateDataGB = dataSizeGB * Math.min(transformationCount * 0.5, 2);
 
   // Estimate shuffle data
-  const shuffleOps = operations.filter(op =>
-    ['join', 'groupby', 'aggregate', 'distinct'].some(s => op.toLowerCase().includes(s))
+  const shuffleOps = operations.filter((op) =>
+    ['join', 'groupby', 'aggregate', 'distinct'].some((s) => op.toLowerCase().includes(s))
   ).length;
 
   const shuffleDataGB = dataSizeGB * Math.min(shuffleOps * 0.7, 3);
 
   // Estimate output data (assume similar to input unless significant filtering)
-  const hasFiltering = operations.some(op => op.toLowerCase().includes('filter'));
+  const hasFiltering = operations.some((op) => op.toLowerCase().includes('filter'));
   const outputDataGB = hasFiltering ? dataSizeGB * 0.5 : dataSizeGB;
 
   const totalIOGB = inputDataGB + intermediateDataGB + shuffleDataGB + outputDataGB;
 
   // Estimate I/O bandwidth requirement (MB/s)
-  const ioIntensity = workloadCharacteristics?.ioPattern === 'streaming' ? 'high' :
-                     workloadCharacteristics?.ioPattern === 'random' ? 'medium' : 'low';
+  const ioIntensity =
+    workloadCharacteristics?.ioPattern === 'streaming'
+      ? 'high'
+      : workloadCharacteristics?.ioPattern === 'random'
+        ? 'medium'
+        : 'low';
 
-  const ioBandwidthMBps = ioIntensity === 'high' ? 5000 :
-                         ioIntensity === 'medium' ? 2000 : 1000;
+  const ioBandwidthMBps = ioIntensity === 'high' ? 5000 : ioIntensity === 'medium' ? 2000 : 1000;
 
   // Temporary storage for spills and checkpoints
   const tmpStorageGB = Math.ceil(shuffleDataGB * 1.5);
@@ -305,12 +288,12 @@ function estimateStorage(
  */
 function estimateTime(
   dataSizeBytes: number,
-  workloadCharacteristics: any,
+  workloadCharacteristics: WorkloadCharacteristics | undefined,
   compute: ComputeEstimate,
   storage: StorageEstimate,
-  hardware: any
+  hardware: HardwareContext
 ): TimeEstimate {
-  const dataSizeMB = dataSizeBytes / (1024 ** 2);
+  const dataSizeMB = dataSizeBytes / 1024 ** 2;
 
   // Base throughput per core (MB/s)
   let throughputPerCoreMBps = 50;
@@ -332,7 +315,8 @@ function estimateTime(
 
   // Time breakdown
   const inputIOMinutes = (storage.inputDataGB * 1024) / totalThroughputMBps / 60;
-  const computationMinutes = (dataSizeMB / totalThroughputMBps / 60) * (workloadType === 'ml-training' ? 3 : 1);
+  const computationMinutes =
+    (dataSizeMB / totalThroughputMBps / 60) * (workloadType === 'ml-training' ? 3 : 1);
   const shuffleMinutes = (storage.shuffleDataGB * 1024) / (hardware.networkBandwidth ?? 1000) / 60;
   const outputIOMinutes = (storage.outputDataGB * 1024) / totalThroughputMBps / 60;
 
@@ -354,10 +338,9 @@ function estimateTime(
     network: shuffleMinutes,
   };
 
-  const bottleneck = Object.entries(times).reduce((a, b) =>
-// @ts-ignore
-    times[(a[0] ?? "cpu")] > times[(b[0] ?? "cpu")] ? a : b
-  )[0] as TimeEstimate['bottleneck'];
+  const bottleneck = (Object.entries(times).reduce((a, b) =>
+    times[a[0] as keyof typeof times] > times[b[0] as keyof typeof times] ? a : b
+  )[0] || 'cpu') as TimeEstimate['bottleneck'];
 
   return {
     estimatedMinutes,
@@ -377,7 +360,7 @@ function estimateTime(
  */
 function calculateConfidence(
   request: ResourceEstimationRequest,
-  workloadCharacteristics: any
+  workloadCharacteristics: WorkloadCharacteristics | undefined
 ): number {
   let confidence = 0.5; // Base confidence
 

@@ -44,7 +44,7 @@ export class ConfigLoader {
       try {
         const fileConfig = JSON.parse(readFileSync(configPath, 'utf-8')) as Partial<Config>;
         this.mergeConfig(this.config, fileConfig);
-      } catch (error) {
+      } catch (error: unknown) {
         console.warn(`Failed to load config file: ${(error as Error).message}`);
       }
     }
@@ -143,7 +143,7 @@ export class ConfigLoader {
   private validate(): void {
     try {
       this.config = ConfigSchema.parse(this.config);
-    } catch (error) {
+    } catch (error: unknown) {
       throw new Error(`Configuration validation failed: ${(error as Error).message}`);
     }
   }

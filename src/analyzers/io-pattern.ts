@@ -28,13 +28,10 @@ export interface IOPatternAnalysis {
 /**
  * Analyze I/O pattern for workload
  */
-export async function analyzeIOPattern(
-  request: IOPatternRequest
-): Promise<IOPatternAnalysis> {
-  const dataSizeBytes = typeof request.dataSize === 'number'
-    ? request.dataSize
-    : parseSize(request.dataSize);
-  const dataSizeMB = dataSizeBytes / (1024 ** 2);
+export async function analyzeIOPattern(request: IOPatternRequest): Promise<IOPatternAnalysis> {
+  const dataSizeBytes =
+    typeof request.dataSize === 'number' ? request.dataSize : parseSize(request.dataSize);
+  const dataSizeMB = dataSizeBytes / 1024 ** 2;
 
   // Determine I/O pattern
   const pattern = determinePattern(request.operations);
@@ -55,20 +52,15 @@ export async function analyzeIOPattern(
   const totalIOMB = estimatedReadMB + estimatedWriteMB + estimatedShuffleMB;
 
   // Determine I/O intensity
-  const ioIntensity = totalIOMB > dataSizeMB * 5 ? 'high' :
-                      totalIOMB > dataSizeMB * 2 ? 'medium' : 'low';
+  const ioIntensity =
+    totalIOMB > dataSizeMB * 5 ? 'high' : totalIOMB > dataSizeMB * 2 ? 'medium' : 'low';
 
   // Check if I/O is a bottleneck
   // Rule of thumb: I/O becomes a bottleneck when total I/O > 3x data size
   const bottleneck = totalIOMB > dataSizeMB * 3;
 
   // Generate recommendations
-  const recommendations = generateIORecommendations(
-    pattern,
-    ioIntensity,
-    bottleneck,
-    request
-  );
+  const recommendations = generateIORecommendations(pattern, ioIntensity, bottleneck, request);
 
   return {
     pattern,
@@ -90,14 +82,12 @@ function determinePattern(operations: string[]): IOPattern {
   const randomOps = ['join', 'lookup', 'sample', 'randomSplit'];
   const sequentialOps = ['map', 'filter', 'select', 'flatMap'];
 
-  const hasStreaming = operations.some(op =>
-    streamingOps.some(s => op.toLowerCase().includes(s))
+  const hasStreaming = operations.some((op) =>
+    streamingOps.some((s) => op.toLowerCase().includes(s))
   );
-  const hasRandom = operations.some(op =>
-    randomOps.some(r => op.toLowerCase().includes(r))
-  );
-  const hasSequential = operations.some(op =>
-    sequentialOps.some(s => op.toLowerCase().includes(s))
+  const hasRandom = operations.some((op) => randomOps.some((r) => op.toLowerCase().includes(r)));
+  const hasSequential = operations.some((op) =>
+    sequentialOps.some((s) => op.toLowerCase().includes(s))
   );
 
   if (hasStreaming) return 'streaming';
@@ -122,18 +112,14 @@ function countShuffleOperations(operations: string[]): number {
     'reducebykey',
   ];
 
-  return operations.filter(op =>
-    shuffleOps.some(shuffle => op.toLowerCase().includes(shuffle))
-  ).length;
+  return operations.filter((op) => shuffleOps.some((shuffle) => op.toLowerCase().includes(shuffle)))
+    .length;
 }
 
 /**
  * Get read multiplier based on pattern
  */
-function getReadMultiplier(
-  readPattern?: string,
-  fileFormat?: string
-): number {
+function getReadMultiplier(readPattern?: string, fileFormat?: string): number {
   let multiplier = 1.0;
 
   // Read pattern adjustments
@@ -156,10 +142,7 @@ function getReadMultiplier(
 /**
  * Get write multiplier based on pattern
  */
-function getWriteMultiplier(
-  writePattern?: string,
-  fileFormat?: string
-): number {
+function getWriteMultiplier(writePattern?: string, fileFormat?: string): number {
   let multiplier = 1.0;
 
   // Write pattern adjustments
@@ -218,18 +201,14 @@ function generateIORecommendations(
       recommendations.push(
         'Random I/O pattern. Use columnar formats with predicate pushdown and partitioning.'
       );
-      recommendations.push(
-        'Consider caching frequently accessed data in memory.'
-      );
+      recommendations.push('Consider caching frequently accessed data in memory.');
       break;
 
     case 'streaming':
       recommendations.push(
         'Streaming I/O. Use checkpointing and adjust trigger intervals for throughput vs. latency.'
       );
-      recommendations.push(
-        'Monitor watermark and state size for streaming jobs.'
-      );
+      recommendations.push('Monitor watermark and state size for streaming jobs.');
       break;
 
     case 'mixed':
@@ -263,10 +242,7 @@ function generateIORecommendations(
 /**
  * Estimate optimal block size for I/O
  */
-export function estimateOptimalBlockSize(
-  pattern: IOPattern,
-  _dataSizeMB?: number
-): number {
+export function estimateOptimalBlockSize(pattern: IOPattern, _dataSizeMB?: number): number {
   // Return block size in MB
   switch (pattern) {
     case 'sequential':
@@ -298,7 +274,9 @@ export function estimateOptimalPartitionCount(
   const targetPartitionSize = estimateOptimalBlockSize(pattern, dataSizeMB);
 
   // Calculate partitions from data size
-  const partitionsFromSize = dataSizeMB ? Math.ceil(dataSizeMB / targetPartitionSize) : availableCores * 3;
+  const partitionsFromSize = dataSizeMB
+    ? Math.ceil(dataSizeMB / targetPartitionSize)
+    : availableCores * 3;
 
   // Calculate partitions from parallelism (2-3x cores)
   const partitionsFromCores = availableCores * 3;

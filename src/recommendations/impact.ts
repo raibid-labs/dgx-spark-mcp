@@ -39,11 +39,7 @@ export async function estimateImpact(request: {
   const { recommendation, baseline, workloadType = 'mixed' } = request;
 
   // Estimate performance improvement
-  const performanceImprovement = estimatePerformanceImpact(
-    recommendation,
-    baseline,
-    workloadType
-  );
+  const performanceImprovement = estimatePerformanceImpact(recommendation, baseline, workloadType);
 
   // Estimate cost impact
   const costImpact = estimateCostImpact(recommendation, baseline);
@@ -280,8 +276,8 @@ function calculateConfidence(recommendation: Recommendation): number {
 
   // Adjust based on impact description specificity
   const hasSpecificNumbers =
-    (recommendation.impact.performanceGain?.match(/\d+/) !== null) ||
-    (recommendation.impact.costSavings?.match(/\d+/) !== null);
+    recommendation.impact.performanceGain?.match(/\d+/) !== null ||
+    recommendation.impact.costSavings?.match(/\d+/) !== null;
 
   if (hasSpecificNumbers) {
     confidence += 0.1;
@@ -307,13 +303,15 @@ export async function compareRecommendations(
   recommendations: Recommendation[],
   baseline: SparkConfig,
   workloadType?: string
-): Promise<Array<{
-  recommendation: Recommendation;
-  impact: ImpactEstimate;
-  roi: number; // Return on investment score
-}>> {
+): Promise<
+  Array<{
+    recommendation: Recommendation;
+    impact: ImpactEstimate;
+    roi: number; // Return on investment score
+  }>
+> {
   const results = await Promise.all(
-    recommendations.map(async rec => {
+    recommendations.map(async (rec) => {
       const impact = await estimateImpact({
         recommendation: rec,
         baseline,
@@ -346,12 +344,17 @@ function calculateROI(impact: ImpactEstimate): number {
   const reliabilityGain = impact.reliabilityImprovement.estimated;
 
   // Effort penalty
-  const effortPenalty = impact.implementationEffort.complexity === 'trivial' ? 1.0 :
-                       impact.implementationEffort.complexity === 'simple' ? 0.9 :
-                       impact.implementationEffort.complexity === 'moderate' ? 0.7 : 0.5;
+  const effortPenalty =
+    impact.implementationEffort.complexity === 'trivial'
+      ? 1.0
+      : impact.implementationEffort.complexity === 'simple'
+        ? 0.9
+        : impact.implementationEffort.complexity === 'moderate'
+          ? 0.7
+          : 0.5;
 
   // Weighted benefit
-  const benefit = (perfGain * 0.5) + (costSavings * 0.3) + (reliabilityGain * 0.2);
+  const benefit = perfGain * 0.5 + costSavings * 0.3 + reliabilityGain * 0.2;
 
   // ROI = benefit * confidence * effort_factor
   return benefit * impact.confidence * effortPenalty;

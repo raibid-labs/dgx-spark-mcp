@@ -151,7 +151,7 @@ export interface FetchOptions {
  */
 export interface DocsApiResponse {
   success: boolean;
-  data?: any;
+  data?: unknown;
   error?: string;
   metadata?: {
     totalResults?: number;

@@ -11,14 +11,12 @@ process.env['MOCK_HARDWARE'] = 'true';
 
 // Extend Jest matchers if needed
 expect.extend({
-  toBeValidSparkConfig(received: any) {
+  toBeValidSparkConfig(received: unknown) {
     const hasRequiredFields =
-      received &&
-      typeof received === 'object' &&
-      'spark.executor.memory' in received;
+      received && typeof received === 'object' && 'spark.executor.memory' in received;
 
     return {
-      pass: hasRequiredFields,
+      pass: Boolean(hasRequiredFields),
       message: () =>
         hasRequiredFields
           ? `Expected ${JSON.stringify(received)} not to be a valid Spark config`

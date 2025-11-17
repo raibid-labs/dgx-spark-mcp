@@ -2,7 +2,7 @@
  * Scaling prediction model for Spark workloads
  */
 
-import {  ScalingOption } from '../types/estimation.js';
+import { ScalingOption } from '../types/estimation.js';
 import { SparkConfig, WorkloadType } from '../types/spark-config.js';
 
 export interface ScalingPredictionRequest {
@@ -36,9 +36,7 @@ export interface ScalingAnalysis {
 /**
  * Predict scaling behavior for workload
  */
-export async function predictScaling(
-  request: ScalingPredictionRequest
-): Promise<ScalingAnalysis> {
+export async function predictScaling(request: ScalingPredictionRequest): Promise<ScalingAnalysis> {
   // Determine scaling factor
   let scalingFactor = 1;
   let resourceType = 'cores';
@@ -59,7 +57,7 @@ export async function predictScaling(
   const serialFraction = 1 - parallelFraction;
 
   // Apply Amdahl's Law
-  const theoreticalMaxSpeedup = 1 / (serialFraction + (parallelFraction / scalingFactor));
+  const theoreticalMaxSpeedup = 1 / (serialFraction + parallelFraction / scalingFactor);
 
   // Apply practical efficiency factor
   const practicalEfficiency = calculatePracticalEfficiency(
@@ -118,7 +116,7 @@ export async function generateScalingOptions(
     targetExecutors: currentExecutors * 2,
     workload: {
       type: workloadType,
-      dataSize: dataSizeGB * (1024 ** 3),
+      dataSize: dataSizeGB * 1024 ** 3,
     },
   });
 
@@ -170,7 +168,7 @@ export async function generateScalingOptions(
     targetExecutors: currentExecutors * 4,
     workload: {
       type: workloadType,
-      dataSize: dataSizeGB * (1024 ** 3),
+      dataSize: dataSizeGB * 1024 ** 3,
     },
   });
 
@@ -225,17 +223,17 @@ export async function generateScalingOptions(
 function estimateParallelFraction(workloadType: WorkloadType): number {
   // Fraction of workload that can be parallelized
   const parallelFractions: Record<WorkloadType, number> = {
-    'etl': 0.90, // Highly parallelizable
-    'analytics': 0.80, // Some serial parts (final aggregations)
+    etl: 0.9, // Highly parallelizable
+    analytics: 0.8, // Some serial parts (final aggregations)
     'ml-training': 0.75, // Iterative algorithms have serial components
     'ml-inference': 0.95, // Highly parallelizable
-    'streaming': 0.85, // Good parallelism
-    'graph': 0.70, // Many dependencies
-    'sql': 0.80,
-    'mixed': 0.80,
+    streaming: 0.85, // Good parallelism
+    graph: 0.7, // Many dependencies
+    sql: 0.8,
+    mixed: 0.8,
   };
 
-  return parallelFractions[workloadType] ?? 0.80;
+  return parallelFractions[workloadType] ?? 0.8;
 }
 
 /**
@@ -247,13 +245,13 @@ function calculatePracticalEfficiency(
   resourceType: string
 ): number {
   // Base efficiency
-  let efficiency = 0.90;
+  let efficiency = 0.9;
 
   // Diminishing returns with scale
   if (scalingFactor > 8) {
-    efficiency *= 0.80; // Coordination overhead
+    efficiency *= 0.8; // Coordination overhead
   } else if (scalingFactor > 4) {
-    efficiency *= 0.90;
+    efficiency *= 0.9;
   }
 
   // GPU scaling is more efficient for certain workloads
@@ -276,12 +274,10 @@ function calculatePracticalEfficiency(
 /**
  * Determine cost effectiveness
  */
-function determineCostEffectiveness(
-  efficiency: number
-): 'excellent' | 'good' | 'fair' | 'poor' {
+function determineCostEffectiveness(efficiency: number): 'excellent' | 'good' | 'fair' | 'poor' {
   if (efficiency >= 0.85) return 'excellent';
-  if (efficiency >= 0.70) return 'good';
-  if (efficiency >= 0.50) return 'fair';
+  if (efficiency >= 0.7) return 'good';
+  if (efficiency >= 0.5) return 'fair';
   return 'poor';
 }
 
@@ -302,14 +298,10 @@ function generateScalingRecommendation(
   );
 
   if (efficiency >= 0.85) {
-    recommendations.push(
-      'Excellent scaling efficiency. This is a cost-effective scaling option.'
-    );
-  } else if (efficiency >= 0.70) {
-    recommendations.push(
-      'Good scaling efficiency. Recommended for production workloads.'
-    );
-  } else if (efficiency >= 0.50) {
+    recommendations.push('Excellent scaling efficiency. This is a cost-effective scaling option.');
+  } else if (efficiency >= 0.7) {
+    recommendations.push('Good scaling efficiency. Recommended for production workloads.');
+  } else if (efficiency >= 0.5) {
     recommendations.push(
       'Fair scaling efficiency. Consider optimizing the workload before scaling further.'
     );
@@ -332,7 +324,10 @@ function generateScalingRecommendation(
     );
   }
 
-  if (resourceType === 'GPUs' && (workloadType === 'ml-training' || workloadType === 'ml-inference')) {
+  if (
+    resourceType === 'GPUs' &&
+    (workloadType === 'ml-training' || workloadType === 'ml-inference')
+  ) {
     recommendations.push(
       'ML workloads scale well with GPUs. Ensure data pipeline can keep GPUs saturated.'
     );
@@ -348,13 +343,17 @@ function parseMemory(memory: string): number {
   const match = memory.match(/^(\d+)([gmk])$/i);
   if (!match) return 8; // Default
 
-  const value = parseInt(match?.[1] ?? "0");
-  const unit = match?.[2] ?? "g".toLowerCase();
+  const value = parseInt(match?.[1] ?? '0');
+  const unit = match?.[2] ?? 'g'.toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }

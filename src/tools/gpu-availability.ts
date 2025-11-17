@@ -47,7 +47,9 @@ export interface GPUAvailabilityResult {
 /**
  * Check GPU availability
  */
-export async function checkGPUAvailability(args?: CheckGPUAvailabilityArgs): Promise<ToolCallResponse> {
+export async function checkGPUAvailability(
+  args?: CheckGPUAvailabilityArgs
+): Promise<ToolCallResponse> {
   try {
     // Detect GPUs
     const gpuResult = await detectGPUs(true);
@@ -55,15 +57,21 @@ export async function checkGPUAvailability(args?: CheckGPUAvailabilityArgs): Pro
 
     if (!gpus || gpus.length === 0) {
       return {
-        content: [{
-          type: 'text',
-          text: JSON.stringify({
-            error: 'No GPUs detected on this system',
-            totalGPUs: 0,
-            availableGPUs: [],
-            busyGPUs: [],
-          }, null, 2),
-        }],
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                error: 'No GPUs detected on this system',
+                totalGPUs: 0,
+                availableGPUs: [],
+                busyGPUs: [],
+              },
+              null,
+              2
+            ),
+          },
+        ],
       };
     }
 
@@ -76,9 +84,7 @@ export async function checkGPUAvailability(args?: CheckGPUAvailabilityArgs): Pro
 
     for (const gpu of gpus) {
       const memoryGB = gpu.memory.free / (1024 * 1024 * 1024);
-      const isAvailable =
-        gpu.utilization.gpu < minUtilization &&
-        memoryGB >= minMemoryGB;
+      const isAvailable = gpu.utilization.gpu < minUtilization && memoryGB >= minMemoryGB;
 
       if (isAvailable) {
         availableGPUs.push(gpu);
@@ -88,13 +94,10 @@ export async function checkGPUAvailability(args?: CheckGPUAvailabilityArgs): Pro
     }
 
     // Generate recommendations
-    const recommendations = generateRecommendations(
-      availableGPUs,
-      busyGPUs,
-      minMemoryGB
-    );
+    const recommendations = generateRecommendations(availableGPUs, busyGPUs, minMemoryGB);
 
-    const summary = `${availableGPUs.length} of ${gpus.length} GPUs available for new jobs. ` +
+    const summary =
+      `${availableGPUs.length} of ${gpus.length} GPUs available for new jobs. ` +
       `Recommended to use ${recommendations.recommendedGPUs.length} GPU(s) for optimal performance.`;
 
     const result: GPUAvailabilityResult = {
@@ -106,20 +109,28 @@ export async function checkGPUAvailability(args?: CheckGPUAvailabilityArgs): Pro
     };
 
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify(result, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
+        },
+      ],
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
-      content: [{
-        type: 'text',
-        text: JSON.stringify({
-          error: 'Failed to check GPU availability',
-          message: error instanceof Error ? error.message : 'Unknown error',
-        }, null, 2),
-      }],
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(
+            {
+              error: 'Failed to check GPU availability',
+              message: error instanceof Error ? error.message : 'Unknown error',
+            },
+            null,
+            2
+          ),
+        },
+      ],
       isError: true,
     };
   }
@@ -128,7 +139,7 @@ export async function checkGPUAvailability(args?: CheckGPUAvailabilityArgs): Pro
 /**
  * Simplify GPU object for output
  */
-function simplifyGPU(gpu: GPU) {
+function simplifyGPU(gpu: GPU): SimplifiedGPU {
   return {
     id: gpu.id,
     name: gpu.name,
@@ -171,7 +182,8 @@ function generateRecommendations(
       return {
         availableForJob: 0,
         recommendedGPUs: [leastBusy.id],
-        reason: `No fully available GPUs. GPU ${leastBusy.id} is least busy with ${leastBusy.utilization.gpu}% utilization. ` +
+        reason:
+          `No fully available GPUs. GPU ${leastBusy.id} is least busy with ${leastBusy.utilization.gpu}% utilization. ` +
           `Consider waiting or using this GPU with caution.`,
       };
     }
@@ -184,9 +196,7 @@ function generateRecommendations(
   }
 
   // Sort available GPUs by free memory (descending)
-  const sortedByMemory = [...availableGPUs].sort((a, b) =>
-    b.memory.free - a.memory.free
-  );
+  const sortedByMemory = [...availableGPUs].sort((a, b) => b.memory.free - a.memory.free);
 
   // Recommend GPUs based on memory requirements
   const recommendedGPUs: number[] = [];
@@ -205,20 +215,21 @@ function generateRecommendations(
     return {
       availableForJob: availableGPUs.length,
       recommendedGPUs,
-      reason: sortedByMemory[0] 
+      reason: sortedByMemory[0]
         ? `No GPUs have ${minMemoryGB}GB free memory. GPU ${sortedByMemory[0].id} has the most free memory (${(sortedByMemory[0].memory.free / (1024 * 1024 * 1024)).toFixed(2)}GB).`
-        : "No GPUs available with sufficient memory",
+        : 'No GPUs available with sufficient memory',
     };
   }
 
   // Default: recommend all available GPUs
-  const reason = minMemoryGB > 0
-    ? `${recommendedGPUs.length} GPU(s) available with at least ${minMemoryGB}GB free memory`
-    : `${availableGPUs.length} GPU(s) available with low utilization`;
+  const reason =
+    minMemoryGB > 0
+      ? `${recommendedGPUs.length} GPU(s) available with at least ${minMemoryGB}GB free memory`
+      : `${availableGPUs.length} GPU(s) available with low utilization`;
 
   return {
     availableForJob: availableGPUs.length,
-    recommendedGPUs: recommendedGPUs.length > 0 ? recommendedGPUs : availableGPUs.map(g => g.id),
+    recommendedGPUs: recommendedGPUs.length > 0 ? recommendedGPUs : availableGPUs.map((g) => g.id),
     reason,
   };
 }

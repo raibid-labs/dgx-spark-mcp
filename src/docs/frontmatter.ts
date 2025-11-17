@@ -107,14 +107,16 @@ function parseYaml(yaml: string): DocumentMetadata {
       const arrayValue = value
         .substring(1, value.length - 1)
         .split(',')
-        .map(item => item.trim().replace(/^["']|["']$/g, ''));
+        .map((item) => item.trim().replace(/^["']|["']$/g, ''));
       setMetadataValue(metadata, key, arrayValue);
       continue;
     }
 
     // Handle quoted strings
-    if ((value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))) {
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.substring(1, value.length - 1);
     }
 
@@ -143,7 +145,7 @@ function parseYaml(yaml: string): DocumentMetadata {
 function setMetadataValue(metadata: DocumentMetadata, key: string, value: string | string[]): void {
   switch (key) {
     case 'title':
-      metadata.title = Array.isArray(value) ? (value[0] || 'Untitled') : value;
+      metadata.title = Array.isArray(value) ? value[0] || 'Untitled' : value;
       break;
     case 'description':
       metadata.description = Array.isArray(value) ? value.join(' ') : value;

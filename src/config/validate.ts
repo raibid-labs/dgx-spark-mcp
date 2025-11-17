@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 
 /**
  * Configuration Validation Script
@@ -14,7 +15,7 @@ try {
   console.log('\nConfiguration:');
   console.log(JSON.stringify(config, null, 2));
   process.exit(0);
-} catch (error) {
+} catch (error: unknown) {
   console.error('Configuration validation failed:');
   console.error((error as Error).message);
   process.exit(1);

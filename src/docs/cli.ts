@@ -1,20 +1,53 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 /**
  * Documentation System CLI
  * Command-line interface for testing documentation features
  * DGX-Spark MCP Server - Workstream 4
  */
 
-import {
-  buildIndex,
-  initializeSearch,
-  search,
-  getDocument,
-  listAllDocs,
-  getStats,
-} from './api.js';
+import { buildIndex, initializeSearch, search, getDocument, listAllDocs, getStats } from './api.js';
 
-async function main() {
+interface SearchResult {
+  title: string;
+  score: number;
+  category: string;
+  excerpt: string;
+}
+
+interface DocResult {
+  success: boolean;
+  data?: {
+    metadata: {
+      title: string;
+      category: string;
+      tags?: string[];
+    };
+    content: string;
+  };
+  error?: string;
+}
+
+interface ListResult {
+  success: boolean;
+  data?: Array<{
+    title: string;
+    id: string;
+    category: string;
+  }>;
+  metadata?: {
+    totalResults: number;
+  };
+  error?: string;
+}
+
+interface StatsResult {
+  success: boolean;
+  data?: unknown;
+  error?: string;
+}
+
+async function main(): Promise<void> {
   const command = process.argv[2];
   const args = process.argv.slice(3);
 
@@ -36,12 +69,12 @@ async function main() {
         }
         console.log(`Searching for: "${args.join(' ')}"\n`);
         await initializeSearch();
-        const results = await search(args.join(' '));
+        const results = (await search(args.join(' '))) as SearchResult[];
         if (results.length === 0) {
           console.log('No results found.');
         } else {
           console.log(`Found ${results.length} results:\n`);
-          results.forEach((result: any, index: number) => {
+          results.forEach((result, index: number) => {
             console.log(`${index + 1}. ${result.title} (score: ${result.score.toFixed(2)})`);
             console.log(`   Category: ${result.category}`);
             console.log(`   ${result.excerpt}`);
@@ -56,8 +89,8 @@ async function main() {
           process.exit(1);
         }
         console.log(`Getting document: ${args[0]}\n`);
-        const doc = await getDocument(args[0]);
-        if (doc.success) {
+        const doc = (await getDocument(args[0])) as DocResult;
+        if (doc.success && doc.data) {
           console.log(`Title: ${doc.data.metadata.title}`);
           console.log(`Category: ${doc.data.metadata.category}`);
           console.log(`Tags: ${doc.data.metadata.tags?.join(', ')}`);
@@ -70,13 +103,13 @@ async function main() {
 
       case 'list':
         console.log('Listing all documents...\n');
-        const list = await listAllDocs();
-        if (list.success) {
+        const list = (await listAllDocs()) as ListResult;
+        if (list.success && list.data) {
           console.log(`Total documents: ${list.metadata?.totalResults}\n`);
-          list.data.forEach((doc: any) => {
-            console.log(`- ${doc.title}`);
-            console.log(`  ID: ${doc.id}`);
-            console.log(`  Category: ${doc.category}`);
+          list.data.forEach((docItem) => {
+            console.log(`- ${docItem.title}`);
+            console.log(`  ID: ${docItem.id}`);
+            console.log(`  Category: ${docItem.category}`);
             console.log('');
           });
         } else {
@@ -86,7 +119,7 @@ async function main() {
 
       case 'stats':
         console.log('Getting documentation statistics...\n');
-        const statsResult = await getStats();
+        const statsResult = (await getStats()) as StatsResult;
         if (statsResult.success) {
           console.log(JSON.stringify(statsResult.data, null, 2));
         } else {
@@ -106,7 +139,7 @@ async function main() {
         console.log('  help            - Show this help message');
         break;
     }
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error:', error);
     process.exit(1);
   }

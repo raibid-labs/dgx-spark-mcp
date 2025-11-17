@@ -64,10 +64,13 @@ export class HealthManager {
         // Update overall status based on check result
         if (check.critical && result.status === HealthStatus.UNHEALTHY) {
           overallStatus = HealthStatus.UNHEALTHY;
-        } else if (result.status === HealthStatus.DEGRADED && overallStatus === HealthStatus.HEALTHY) {
+        } else if (
+          result.status === HealthStatus.DEGRADED &&
+          overallStatus === HealthStatus.HEALTHY
+        ) {
           overallStatus = HealthStatus.DEGRADED;
         }
-      } catch (error) {
+      } catch (error: unknown) {
         const errorResult: HealthCheckResult = {
           status: HealthStatus.UNHEALTHY,
           message: (error as Error).message,

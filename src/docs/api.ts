@@ -35,7 +35,7 @@ export async function initialize(docsDir: string = 'docs'): Promise<DocsApiRespo
         stats,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to initialize documentation system: ${error}`,
@@ -60,7 +60,7 @@ export async function searchDocumentation(
         totalResults: results.length,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Search failed: ${error}`,
@@ -93,7 +93,7 @@ export async function getDocument(id: string): Promise<DocsApiResponse> {
         url: `dgx://docs/${id}`,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to get document: ${error}`,
@@ -127,7 +127,7 @@ export async function getDocumentContent(id: string): Promise<DocsApiResponse> {
         metadata: parsed.metadata,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to get document content: ${error}`,
@@ -143,7 +143,7 @@ export async function listAllDocs(): Promise<DocsApiResponse> {
     const index = getIndex();
     const entries = index.getAllEntries();
 
-    const docs = entries.map(entry => ({
+    const docs = entries.map((entry) => ({
       id: entry.id,
       title: entry.title,
       description: entry.description,
@@ -159,7 +159,7 @@ export async function listAllDocs(): Promise<DocsApiResponse> {
         totalResults: docs.length,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to list documents: ${error}`,
@@ -175,7 +175,7 @@ export async function listDocsByCategory(category: string): Promise<DocsApiRespo
     const index = getIndex();
     const entries = index.getEntriesByCategory(category);
 
-    const docs = entries.map(entry => ({
+    const docs = entries.map((entry) => ({
       id: entry.id,
       title: entry.title,
       description: entry.description,
@@ -190,7 +190,7 @@ export async function listDocsByCategory(category: string): Promise<DocsApiRespo
         totalResults: docs.length,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to list documents by category: ${error}`,
@@ -206,7 +206,7 @@ export async function listDocsByTag(tag: string): Promise<DocsApiResponse> {
     const index = getIndex();
     const entries = index.getEntriesByTag(tag);
 
-    const docs = entries.map(entry => ({
+    const docs = entries.map((entry) => ({
       id: entry.id,
       title: entry.title,
       description: entry.description,
@@ -221,7 +221,7 @@ export async function listDocsByTag(tag: string): Promise<DocsApiResponse> {
         totalResults: docs.length,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to list documents by tag: ${error}`,
@@ -245,7 +245,7 @@ export async function getStats(): Promise<DocsApiResponse> {
         cache: cacheStats,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to get stats: ${error}`,
@@ -268,7 +268,7 @@ export async function rebuildIndex(docsDir: string = 'docs'): Promise<DocsApiRes
         stats,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to rebuild index: ${error}`,
@@ -296,7 +296,7 @@ export async function getExternalDoc(
         fromCache: result.fromCache,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to fetch external doc: ${error}`,
@@ -318,7 +318,7 @@ export async function listExternalSources(): Promise<DocsApiResponse> {
         totalResults: sources.length,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to list external sources: ${error}`,
@@ -339,7 +339,7 @@ export async function clearCache(): Promise<DocsApiResponse> {
         status: 'cache cleared',
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to clear cache: ${error}`,
@@ -361,7 +361,7 @@ export async function pruneCache(): Promise<DocsApiResponse> {
         prunedCount,
       },
     };
-  } catch (error) {
+  } catch (error: unknown) {
     return {
       success: false,
       error: `Failed to prune cache: ${error}`,

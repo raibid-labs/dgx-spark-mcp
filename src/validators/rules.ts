@@ -2,15 +2,59 @@
  * Validation rules for Spark configurations
  */
 
+/**
+ * Spark configuration structure for validation
+ */
+interface SparkValidationConfig {
+  executor?: {
+    memory?: string;
+    cores?: number;
+    instances?: number;
+  };
+  driver?: {
+    memory?: string;
+    cores?: number;
+  };
+  memory?: {
+    fraction?: number;
+    storageFraction?: number;
+    offHeap?: {
+      enabled?: boolean;
+      memory?: string;
+    };
+  };
+  shuffle?: {
+    partitions?: number;
+    compress?: boolean;
+  };
+  gpu?: {
+    enabled?: boolean;
+    amount?: number;
+    rapids?: {
+      enabled?: boolean;
+      memoryFraction?: number;
+    };
+  };
+  optimization?: {
+    adaptiveExecution?: {
+      enabled?: boolean;
+    };
+  };
+  speculation?: {
+    enabled?: boolean;
+  };
+  serializer?: string;
+}
+
 export interface ValidationRule {
   id: string;
   name: string;
   category: 'executor' | 'driver' | 'memory' | 'shuffle' | 'gpu' | 'optimization';
   severity: 'error' | 'warning' | 'info';
   description: string;
-  check: (config: any) => boolean;
-  message: (config: any) => string;
-  fix?: (config: any) => any;
+  check: (config: Record<string, unknown>) => boolean;
+  message: (config: Record<string, unknown>) => string;
+  fix?: (config: Record<string, unknown>) => Record<string, unknown>;
 }
 
 /**
@@ -24,14 +68,14 @@ export async function listRules(): Promise<ValidationRule[]> {
  * Get rules by category
  */
 export async function getRulesByCategory(category: string): Promise<ValidationRule[]> {
-  return ALL_RULES.filter(rule => rule.category === category);
+  return ALL_RULES.filter((rule) => rule.category === category);
 }
 
 /**
  * Get rules by severity
  */
 export async function getRulesBySeverity(severity: string): Promise<ValidationRule[]> {
-  return ALL_RULES.filter(rule => rule.severity === severity);
+  return ALL_RULES.filter((rule) => rule.severity === severity);
 }
 
 /**
@@ -45,8 +89,14 @@ const ALL_RULES: ValidationRule[] = [
     category: 'executor',
     severity: 'error',
     description: 'Executor memory must be at least 1GB',
-    check: (config) => parseMemory(config.executor?.memory) >= 1,
-    message: (config) => `Executor memory ${config.executor?.memory} is below minimum of 1GB`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return parseMemory(cfg.executor?.memory) >= 1;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Executor memory ${cfg.executor?.memory} is below minimum of 1GB`;
+    },
   },
   {
     id: 'exec-002',
@@ -54,8 +104,14 @@ const ALL_RULES: ValidationRule[] = [
     category: 'executor',
     severity: 'warning',
     description: 'Executor memory should not exceed 64GB to avoid GC issues',
-    check: (config) => parseMemory(config.executor?.memory) <= 64,
-    message: (config) => `Executor memory ${config.executor?.memory} exceeds recommended 64GB`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return parseMemory(cfg.executor?.memory) <= 64;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Executor memory ${cfg.executor?.memory} exceeds recommended 64GB`;
+    },
   },
   {
     id: 'exec-003',
@@ -63,8 +119,15 @@ const ALL_RULES: ValidationRule[] = [
     category: 'executor',
     severity: 'warning',
     description: 'Executor cores should be between 4-6 for optimal performance',
-    check: (config) => config.executor?.cores >= 4 && config.executor?.cores <= 6,
-    message: (config) => `Executor cores ${config.executor?.cores} outside optimal range of 4-6`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      const cores = cfg.executor?.cores ?? 0;
+      return cores >= 4 && cores <= 6;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Executor cores ${cfg.executor?.cores} outside optimal range of 4-6`;
+    },
   },
   {
     id: 'exec-004',
@@ -72,7 +135,11 @@ const ALL_RULES: ValidationRule[] = [
     category: 'executor',
     severity: 'error',
     description: 'Executor must have at least 1 core',
-    check: (config) => config.executor?.cores >= 1,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      const cores = cfg.executor?.cores ?? 0;
+      return cores >= 1;
+    },
     message: () => 'Executor cores must be at least 1',
   },
 
@@ -83,8 +150,14 @@ const ALL_RULES: ValidationRule[] = [
     category: 'driver',
     severity: 'error',
     description: 'Driver memory must be at least 1GB',
-    check: (config) => parseMemory(config.driver?.memory) >= 1,
-    message: (config) => `Driver memory ${config.driver?.memory} is below minimum of 1GB`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return parseMemory(cfg.driver?.memory) >= 1;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Driver memory ${cfg.driver?.memory} is below minimum of 1GB`;
+    },
   },
   {
     id: 'drv-002',
@@ -93,13 +166,15 @@ const ALL_RULES: ValidationRule[] = [
     severity: 'warning',
     description: 'Driver memory should be 1-2x executor memory',
     check: (config) => {
-      const driverMem = parseMemory(config.driver?.memory);
-      const executorMem = parseMemory(config.executor?.memory);
+      const cfg = config as SparkValidationConfig;
+      const driverMem = parseMemory(cfg.driver?.memory);
+      const executorMem = parseMemory(cfg.executor?.memory);
       return driverMem >= executorMem && driverMem <= executorMem * 2;
     },
     message: (config) => {
-      const driverMem = parseMemory(config.driver?.memory);
-      const executorMem = parseMemory(config.executor?.memory);
+      const cfg = config as SparkValidationConfig;
+      const driverMem = parseMemory(cfg.driver?.memory);
+      const executorMem = parseMemory(cfg.executor?.memory);
       return `Driver memory (${driverMem}GB) should be 1-2x executor memory (${executorMem}GB)`;
     },
   },
@@ -111,8 +186,15 @@ const ALL_RULES: ValidationRule[] = [
     category: 'memory',
     severity: 'error',
     description: 'Memory fraction must be between 0 and 1',
-    check: (config) => config.memory?.fraction >= 0 && config.memory?.fraction <= 1,
-    message: (config) => `Memory fraction ${config.memory?.fraction} must be between 0 and 1`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      const fraction = cfg.memory?.fraction ?? -1;
+      return fraction >= 0 && fraction <= 1;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Memory fraction ${cfg.memory?.fraction} must be between 0 and 1`;
+    },
   },
   {
     id: 'mem-002',
@@ -120,8 +202,15 @@ const ALL_RULES: ValidationRule[] = [
     category: 'memory',
     severity: 'error',
     description: 'Storage fraction must be between 0 and 1',
-    check: (config) => config.memory?.storageFraction >= 0 && config.memory?.storageFraction <= 1,
-    message: (config) => `Storage fraction ${config.memory?.storageFraction} must be between 0 and 1`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      const storageFraction = cfg.memory?.storageFraction ?? -1;
+      return storageFraction >= 0 && storageFraction <= 1;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Storage fraction ${cfg.memory?.storageFraction} must be between 0 and 1`;
+    },
   },
   {
     id: 'mem-003',
@@ -129,8 +218,15 @@ const ALL_RULES: ValidationRule[] = [
     category: 'memory',
     severity: 'info',
     description: 'Memory fraction should be at least 0.4',
-    check: (config) => config.memory?.fraction >= 0.4,
-    message: (config) => `Memory fraction ${config.memory?.fraction} is below recommended 0.4`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      const fraction = cfg.memory?.fraction ?? 0;
+      return fraction >= 0.4;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `Memory fraction ${cfg.memory?.fraction} is below recommended 0.4`;
+    },
   },
 
   // Shuffle Rules
@@ -140,7 +236,11 @@ const ALL_RULES: ValidationRule[] = [
     category: 'shuffle',
     severity: 'error',
     description: 'Shuffle partitions must be at least 1',
-    check: (config) => config.shuffle?.partitions >= 1,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      const partitions = cfg.shuffle?.partitions ?? 0;
+      return partitions >= 1;
+    },
     message: () => 'Shuffle partitions must be at least 1',
   },
   {
@@ -150,12 +250,19 @@ const ALL_RULES: ValidationRule[] = [
     severity: 'warning',
     description: 'Shuffle partitions should be 2-3x total cores',
     check: (config) => {
-      const totalCores = config.executor?.cores * (config.executor?.instances ?? 1);
-      return config.shuffle?.partitions >= totalCores * 2;
+      const cfg = config as SparkValidationConfig;
+      const cores = cfg.executor?.cores ?? 0;
+      const instances = cfg.executor?.instances ?? 1;
+      const partitions = cfg.shuffle?.partitions ?? 0;
+      const totalCores = cores * instances;
+      return partitions >= totalCores * 2;
     },
     message: (config) => {
-      const totalCores = config.executor?.cores * (config.executor?.instances ?? 1);
-      return `Shuffle partitions ${config.shuffle?.partitions} should be at least ${totalCores * 2} (2x cores)`;
+      const cfg = config as SparkValidationConfig;
+      const cores = cfg.executor?.cores ?? 0;
+      const instances = cfg.executor?.instances ?? 1;
+      const totalCores = cores * instances;
+      return `Shuffle partitions ${cfg.shuffle?.partitions} should be at least ${totalCores * 2} (2x cores)`;
     },
   },
   {
@@ -164,7 +271,10 @@ const ALL_RULES: ValidationRule[] = [
     category: 'shuffle',
     severity: 'info',
     description: 'Shuffle compression should be enabled',
-    check: (config) => config.shuffle?.compress === true,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return cfg.shuffle?.compress === true;
+    },
     message: () => 'Enable shuffle compression to reduce I/O',
   },
 
@@ -175,8 +285,16 @@ const ALL_RULES: ValidationRule[] = [
     category: 'gpu',
     severity: 'error',
     description: 'GPU amount must be positive',
-    check: (config) => !config.gpu?.enabled || (config.gpu?.amount ?? 1) > 0,
-    message: (config) => `GPU amount ${config.gpu?.amount} must be positive`,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      if (!cfg.gpu?.enabled) return true;
+      const amount = cfg.gpu?.amount ?? 1;
+      return amount > 0;
+    },
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `GPU amount ${cfg.gpu?.amount} must be positive`;
+    },
   },
   {
     id: 'gpu-002',
@@ -185,11 +303,15 @@ const ALL_RULES: ValidationRule[] = [
     severity: 'error',
     description: 'RAPIDS memory fraction must be between 0 and 1',
     check: (config) => {
-      if (!config.gpu?.rapids?.enabled) return true;
-      const frac = config.gpu.rapids.memoryFraction;
+      const cfg = config as SparkValidationConfig;
+      if (!cfg.gpu?.rapids?.enabled) return true;
+      const frac = cfg.gpu?.rapids?.memoryFraction;
       return frac === undefined || (frac >= 0 && frac <= 1);
     },
-    message: (config) => `RAPIDS memory fraction ${config.gpu?.rapids?.memoryFraction} must be between 0 and 1`,
+    message: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return `RAPIDS memory fraction ${cfg.gpu?.rapids?.memoryFraction} must be between 0 and 1`;
+    },
   },
   {
     id: 'gpu-003',
@@ -197,7 +319,11 @@ const ALL_RULES: ValidationRule[] = [
     category: 'gpu',
     severity: 'info',
     description: 'Enable RAPIDS when using GPUs',
-    check: (config) => !config.gpu?.enabled || config.gpu?.rapids?.enabled,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      if (!cfg.gpu?.enabled) return true;
+      return cfg.gpu?.rapids?.enabled === true;
+    },
     message: () => 'Enable RAPIDS for GPU-accelerated operations',
   },
 
@@ -208,7 +334,10 @@ const ALL_RULES: ValidationRule[] = [
     category: 'optimization',
     severity: 'warning',
     description: 'Use Kryo serialization for better performance',
-    check: (config) => config.serializer?.includes('Kryo'),
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return typeof cfg.serializer === 'string' && cfg.serializer.includes('Kryo');
+    },
     message: () => 'Use Kryo serialization instead of Java serialization',
   },
   {
@@ -217,7 +346,10 @@ const ALL_RULES: ValidationRule[] = [
     category: 'optimization',
     severity: 'info',
     description: 'Enable Adaptive Query Execution',
-    check: (config) => config.optimization?.adaptiveExecution?.enabled === true,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return cfg.optimization?.adaptiveExecution?.enabled === true;
+    },
     message: () => 'Enable Adaptive Query Execution for runtime optimizations',
   },
   {
@@ -227,8 +359,9 @@ const ALL_RULES: ValidationRule[] = [
     severity: 'info',
     description: 'Enable off-heap memory for large executors',
     check: (config) => {
-      const execMem = parseMemory(config.executor?.memory);
-      return execMem < 16 || config.memory?.offHeap?.enabled === true;
+      const cfg = config as SparkValidationConfig;
+      const execMem = parseMemory(cfg.executor?.memory);
+      return execMem < 16 || cfg.memory?.offHeap?.enabled === true;
     },
     message: () => 'Enable off-heap memory for executors with >16GB memory',
   },
@@ -238,7 +371,10 @@ const ALL_RULES: ValidationRule[] = [
     category: 'optimization',
     severity: 'info',
     description: 'Enable speculation to handle slow tasks',
-    check: (config) => config.speculation?.enabled === true,
+    check: (config) => {
+      const cfg = config as SparkValidationConfig;
+      return cfg.speculation?.enabled === true;
+    },
     message: () => 'Enable speculation to mitigate stragglers',
   },
 ];
@@ -256,9 +392,13 @@ function parseMemory(memory?: string): number {
   const unit = match[2].toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }

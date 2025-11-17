@@ -42,10 +42,7 @@ export async function checkAntiPatterns(config: SparkConfig): Promise<BestPracti
   const score = Math.max(0, Math.round((passed / totalChecks) * 100));
 
   // Determine grade
-  const grade = score >= 90 ? 'A' :
-               score >= 80 ? 'B' :
-               score >= 70 ? 'C' :
-               score >= 60 ? 'D' : 'F';
+  const grade = score >= 90 ? 'A' : score >= 80 ? 'B' : score >= 70 ? 'C' : score >= 60 ? 'D' : 'F';
 
   return {
     passed,
@@ -59,10 +56,7 @@ export async function checkAntiPatterns(config: SparkConfig): Promise<BestPracti
 /**
  * Check memory anti-patterns
  */
-function checkMemoryAntiPatterns(
-  config: SparkConfig,
-  violations: BestPracticeViolation[]
-): void {
+function checkMemoryAntiPatterns(config: SparkConfig, violations: BestPracticeViolation[]): void {
   const executorMemGB = parseMemory(config.executor.memory);
   const driverMemGB = parseMemory(config.driver.memory);
 
@@ -108,7 +102,8 @@ function checkMemoryAntiPatterns(
       severity: 'low',
       pattern: 'Driver-Heavy Configuration',
       description: `Driver memory (${driverMemGB}GB) is disproportionately large compared to executors`,
-      recommendation: 'Driver should typically be 1-2x executor memory unless collecting large results',
+      recommendation:
+        'Driver should typically be 1-2x executor memory unless collecting large results',
     });
   }
 
@@ -136,10 +131,7 @@ function checkMemoryAntiPatterns(
 /**
  * Check executor anti-patterns
  */
-function checkExecutorAntiPatterns(
-  config: SparkConfig,
-  violations: BestPracticeViolation[]
-): void {
+function checkExecutorAntiPatterns(config: SparkConfig, violations: BestPracticeViolation[]): void {
   // Too many cores per executor
   if (config.executor.cores > 8) {
     violations.push({
@@ -183,10 +175,7 @@ function checkExecutorAntiPatterns(
 /**
  * Check shuffle anti-patterns
  */
-function checkShuffleAntiPatterns(
-  config: SparkConfig,
-  violations: BestPracticeViolation[]
-): void {
+function checkShuffleAntiPatterns(config: SparkConfig, violations: BestPracticeViolation[]): void {
   const totalCores = config.executor.cores * (config.executor.instances ?? 1);
 
   // Too few shuffle partitions
@@ -238,10 +227,7 @@ function checkShuffleAntiPatterns(
 /**
  * Check GPU anti-patterns
  */
-function checkGPUAntiPatterns(
-  config: SparkConfig,
-  violations: BestPracticeViolation[]
-): void {
+function checkGPUAntiPatterns(config: SparkConfig, violations: BestPracticeViolation[]): void {
   if (!config.gpu?.enabled) return;
 
   // GPU without RAPIDS
@@ -354,7 +340,9 @@ function checkOptimizationAntiPatterns(
   }
 
   // Low broadcast threshold
-  const broadcastThreshold = parseSizeString(config.optimization.autoBroadcastJoinThreshold ?? '10mb');
+  const broadcastThreshold = parseSizeString(
+    config.optimization.autoBroadcastJoinThreshold ?? '10mb'
+  );
   if (broadcastThreshold < 5 * 1024 * 1024) {
     violations.push({
       category: 'performance',
@@ -377,10 +365,14 @@ function parseMemory(memory: string): number {
   const unit = match[2].toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }
 

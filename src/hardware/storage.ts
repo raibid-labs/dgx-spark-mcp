@@ -2,10 +2,63 @@
  * Storage detection module
  */
 
-import { Storage, StorageDetectionResult, BlockDevice, MountPoint, NVMeDevice, RAIDArray } from '../types/storage.js';
+import {
+  Storage,
+  StorageDetectionResult,
+  BlockDevice,
+  MountPoint,
+  NVMeDevice,
+  RAIDArray,
+} from '../types/storage.js';
 import { executeCommand } from '../utils/exec.js';
 
-export async function detectStorage(includeNVMe: boolean = true, includeRAID: boolean = true): Promise<StorageDetectionResult> {
+/**
+ * Interface for lsblk JSON output device structure
+ */
+interface LsblkDevice {
+  name: string;
+  type: string;
+  size: string;
+  mountpoint?: string;
+  fstype?: string;
+  model?: string;
+  serial?: string;
+  uuid?: string;
+  children?: LsblkDevice[];
+}
+
+/**
+ * Interface for lsblk JSON output root structure
+ */
+interface LsblkOutput {
+  blockdevices?: LsblkDevice[];
+}
+
+/**
+ * Interface for NVMe device from nvme list JSON output
+ */
+interface NvmeDeviceRaw {
+  DevicePath: string;
+  ModelNumber: string;
+  SerialNumber: string;
+  Firmware: string;
+  PhysicalSize: string;
+  UsedBytes: string;
+  Temperature?: string;
+  CriticalWarning?: string;
+}
+
+/**
+ * Interface for nvme list JSON output root structure
+ */
+interface NvmeOutput {
+  Devices?: NvmeDeviceRaw[];
+}
+
+export async function detectStorage(
+  includeNVMe: boolean = true,
+  includeRAID: boolean = true
+): Promise<StorageDetectionResult> {
   const startTime = Date.now();
 
   const blockDevices = await detectBlockDevices();
@@ -33,31 +86,33 @@ export async function detectStorage(includeNVMe: boolean = true, includeRAID: bo
 }
 
 async function detectBlockDevices(): Promise<BlockDevice[]> {
-  const result = await executeCommand('lsblk -b -J -o NAME,TYPE,SIZE,MOUNTPOINT,FSTYPE,MODEL,SERIAL,UUID');
+  const result = await executeCommand(
+    'lsblk -b -J -o NAME,TYPE,SIZE,MOUNTPOINT,FSTYPE,MODEL,SERIAL,UUID'
+  );
   if (result.exitCode !== 0) throw new Error(`Failed to detect block devices`);
 
   try {
-    const data = JSON.parse(result.stdout);
-    return (data.blockdevices || []).map((d: any) => parseBlockDevice(d));
-  } catch (error) {
+    const data = JSON.parse(result.stdout) as LsblkOutput;
+    return (data.blockdevices || []).map((d) => parseBlockDevice(d));
+  } catch {
     throw new Error(`Failed to parse lsblk output`);
   }
 }
 
-function parseBlockDevice(device: any): BlockDevice {
+function parseBlockDevice(device: LsblkDevice): BlockDevice {
   const bd: BlockDevice = {
-    name: device.name || '',
-    type: device.type || '',
+    name: device.name,
+    type: device.type,
     size: parseInt(device.size, 10) || 0,
-    mountpoint: device.mountpoint || undefined,
-    fstype: device.fstype || undefined,
-    model: device.model || undefined,
-    serial: device.serial || undefined,
-    uuid: device.uuid || undefined,
+    mountpoint: device.mountpoint,
+    fstype: device.fstype,
+    model: device.model,
+    serial: device.serial,
+    uuid: device.uuid,
   };
 
   if (device.children && Array.isArray(device.children)) {
-    bd.children = device.children.map((c: any) => parseBlockDevice(c));
+    bd.children = device.children.map((c) => parseBlockDevice(c));
   }
 
   return bd;
@@ -99,14 +154,14 @@ async function detectNVMeDevices(): Promise<NVMeDevice[] | undefined> {
   if (result.exitCode !== 0) return undefined;
 
   try {
-    const data = JSON.parse(result.stdout);
+    const data = JSON.parse(result.stdout) as NvmeOutput;
     if (!data.Devices || !Array.isArray(data.Devices)) return undefined;
 
-    const devices: NVMeDevice[] = data.Devices.map((device: any) => ({
-      device: device.DevicePath || '',
-      model: device.ModelNumber || '',
-      serial: device.SerialNumber || '',
-      firmware: device.Firmware || '',
+    const devices: NVMeDevice[] = data.Devices.map((device: NvmeDeviceRaw) => ({
+      device: device.DevicePath,
+      model: device.ModelNumber,
+      serial: device.SerialNumber,
+      firmware: device.Firmware,
       totalCapacity: parseInt(device.PhysicalSize, 10) || 0,
       usedCapacity: parseInt(device.UsedBytes, 10) || 0,
       temperatureCelsius: device.Temperature ? parseInt(device.Temperature, 10) : undefined,
@@ -114,7 +169,7 @@ async function detectNVMeDevices(): Promise<NVMeDevice[] | undefined> {
     }));
 
     return devices.length > 0 ? devices : undefined;
-  } catch (error) {
+  } catch {
     return undefined;
   }
 }
@@ -131,13 +186,13 @@ async function detectRAIDArrays(): Promise<RAIDArray[] | undefined> {
     const trimmed = line.trim();
 
     const arrayMatch = trimmed.match(/^(md\d+)\s*:\s*(\w+)\s+(raid\d+)\s+(.+)$/);
-    if (arrayMatch && arrayMatch[1] && arrayMatch[2] && arrayMatch[3] && arrayMatch[4]) {
+    if (arrayMatch?.[1] && arrayMatch[2] && arrayMatch[3] && arrayMatch[4]) {
       if (currentArray) arrays.push(currentArray as RAIDArray);
 
       const devices = arrayMatch[4]
         .split(/\s+/)
-        .map(d => d.replace(/\[\d+\]/g, ''))
-        .filter(d => d.length > 0);
+        .map((d) => d.replace(/\[\d+\]/g, ''))
+        .filter((d) => d.length > 0);
 
       currentArray = {
         name: arrayMatch[1],
@@ -150,7 +205,7 @@ async function detectRAIDArrays(): Promise<RAIDArray[] | undefined> {
     }
 
     const sizeMatch = trimmed.match(/^(\d+)\s+blocks/);
-    if (sizeMatch && sizeMatch[1] && currentArray) {
+    if (sizeMatch?.[1] && currentArray) {
       const blocks = parseInt(sizeMatch[1], 10);
       currentArray.size = blocks * 1024;
       currentArray.usedSize = currentArray.size;
@@ -161,7 +216,11 @@ async function detectRAIDArrays(): Promise<RAIDArray[] | undefined> {
   return arrays.length > 0 ? arrays : undefined;
 }
 
-function calculateTotals(mountPoints: MountPoint[]): { totalCapacity: number; totalUsed: number; totalAvailable: number } {
+function calculateTotals(mountPoints: MountPoint[]): {
+  totalCapacity: number;
+  totalUsed: number;
+  totalAvailable: number;
+} {
   let totalCapacity = 0;
   let totalUsed = 0;
   let totalAvailable = 0;

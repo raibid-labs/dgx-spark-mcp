@@ -45,7 +45,12 @@ export class MetricsRegistry {
   /**
    * Increment a counter metric
    */
-  incrementCounter(name: string, help: string, value = 1, labels: Record<string, string> = {}): void {
+  incrementCounter(
+    name: string,
+    help: string,
+    value = 1,
+    labels: Record<string, string> = {}
+  ): void {
     const key = this.getMetricKey(name, labels);
     const existing = this.counters.get(key);
 
@@ -253,12 +258,10 @@ export class DGXMetrics {
    * Record MCP request
    */
   recordRequest(method: string, status: 'success' | 'error'): void {
-    this.registry.incrementCounter(
-      'dgx_mcp_requests_total',
-      'Total number of MCP requests',
-      1,
-      { method, status }
-    );
+    this.registry.incrementCounter('dgx_mcp_requests_total', 'Total number of MCP requests', 1, {
+      method,
+      status,
+    });
   }
 
   /**
@@ -309,13 +312,16 @@ export class DGXMetrics {
   /**
    * Set GPU metrics
    */
-  setGPUMetrics(gpuIndex: number, metrics: {
-    temperature?: number;
-    utilization?: number;
-    memoryUsed?: number;
-    memoryTotal?: number;
-    powerUsage?: number;
-  }): void {
+  setGPUMetrics(
+    gpuIndex: number,
+    metrics: {
+      temperature?: number;
+      utilization?: number;
+      memoryUsed?: number;
+      memoryTotal?: number;
+      powerUsage?: number;
+    }
+  ): void {
     const labels = { gpu: gpuIndex.toString() };
 
     if (metrics.temperature !== undefined) {
@@ -368,12 +374,10 @@ export class DGXMetrics {
    * Record error
    */
   recordError(type: string, severity: string): void {
-    this.registry.incrementCounter(
-      'dgx_mcp_errors_total',
-      'Total number of errors',
-      1,
-      { type, severity }
-    );
+    this.registry.incrementCounter('dgx_mcp_errors_total', 'Total number of errors', 1, {
+      type,
+      severity,
+    });
   }
 
   /**

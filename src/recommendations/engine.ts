@@ -58,9 +58,13 @@ export async function generateRecommendations(request: {
     recommendations.push({
       id: `bp-${violation.pattern.toLowerCase().replace(/\s+/g, '-')}`,
       category: violation.category === 'security' ? 'best-practice' : violation.category,
-      priority: violation.severity === 'critical' ? 'critical' :
-                violation.severity === 'high' ? 'high' :
-                violation.severity === 'medium' ? 'medium' : 'low',
+      priority: (violation.severity === 'critical'
+        ? 'critical'
+        : violation.severity === 'high'
+          ? 'high'
+          : violation.severity === 'medium'
+            ? 'medium'
+            : 'low') as 'critical' | 'high' | 'medium' | 'low',
       title: `Fix: ${violation.pattern}`,
       description: violation.description,
       impact: {
@@ -89,7 +93,7 @@ export async function generateRecommendations(request: {
       recommendations.push({
         id: `bottleneck-${bottleneck.type}`,
         category: 'performance',
-        priority: bottleneck.severity as any,
+        priority: bottleneck.severity as 'critical' | 'high' | 'medium' | 'low',
         title: `Address ${bottleneck.type.toUpperCase()} Bottleneck`,
         description: bottleneck.description,
         impact: {
@@ -127,17 +131,20 @@ export async function generateRecommendations(request: {
     'best-practice': 0,
   };
 
-  recommendations.forEach(rec => {
+  recommendations.forEach((rec) => {
     byPriority[rec.priority] = (byPriority[rec.priority] || 0) + 1;
     byCategory[rec.category] = (byCategory[rec.category] || 0) + 1;
   });
 
   // Estimate overall impact
   const estimatedImpact =
-    (byPriority["critical"] || 0) > 0 ? '50-100% performance improvement possible' :
-    (byPriority["high"] || 0) > 0 ? '20-50% performance improvement possible' :
-    (byPriority["medium"] || 0) > 0 ? '10-20% performance improvement possible' :
-    '5-10% performance improvement possible';
+    (byPriority['critical'] || 0) > 0
+      ? '50-100% performance improvement possible'
+      : (byPriority['high'] || 0) > 0
+        ? '20-50% performance improvement possible'
+        : (byPriority['medium'] || 0) > 0
+          ? '10-20% performance improvement possible'
+          : '5-10% performance improvement possible';
 
   return {
     recommendations,
@@ -197,7 +204,8 @@ function generateWorkloadRecommendations(
             difficulty: 'easy',
             steps: ['Enable off-heap memory with 20% of executor memory'],
           },
-          rationale: 'Iterative algorithms create memory pressure that benefits from off-heap storage',
+          rationale:
+            'Iterative algorithms create memory pressure that benefits from off-heap storage',
         });
       }
       break;
@@ -255,10 +263,7 @@ function generateWorkloadRecommendations(
           },
           implementation: {
             difficulty: 'medium',
-            steps: [
-              'Reduce executor memory to 16-24GB',
-              'Increase executor count proportionally',
-            ],
+            steps: ['Reduce executor memory to 16-24GB', 'Increase executor count proportionally'],
           },
           rationale: 'ETL is I/O bound and benefits from more parallelism',
         });
@@ -296,10 +301,7 @@ function generateHardwareRecommendations(
       },
       implementation: {
         difficulty: 'easy',
-        steps: [
-          'Increase executor memory or executor count',
-          'Target 70-80% memory utilization',
-        ],
+        steps: ['Increase executor memory or executor count', 'Target 70-80% memory utilization'],
       },
       rationale: 'Leaving resources idle reduces throughput',
     });
@@ -318,10 +320,7 @@ function generateHardwareRecommendations(
       },
       implementation: {
         difficulty: 'medium',
-        steps: [
-          'Evaluate if workload can benefit from GPU',
-          'Enable GPU and RAPIDS if applicable',
-        ],
+        steps: ['Evaluate if workload can benefit from GPU', 'Enable GPU and RAPIDS if applicable'],
       },
       rationale: 'GPUs provide massive parallel processing for certain operations',
     });
@@ -341,9 +340,13 @@ function parseMemory(memory: string): number {
   const unit = match[2].toLowerCase();
 
   switch (unit) {
-    case 'g': return value;
-    case 'm': return value / 1024;
-    case 'k': return value / (1024 * 1024);
-    default: return value;
+    case 'g':
+      return value;
+    case 'm':
+      return value / 1024;
+    case 'k':
+      return value / (1024 * 1024);
+    default:
+      return value;
   }
 }
