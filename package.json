@@ -50,7 +50,7 @@
     "test:benchmark": "NODE_OPTIONS=--experimental-vm-modules jest --testMatch='**/tests/benchmark/**/*.test.ts'",
     "test:docs": "npm run build && npm run docs:build",
     "prepublishOnly": "npm run clean && npm run build && npm test",
-    "prepare": "husky",
+    "prepare": "npm run build && husky",
     "release": "semantic-release",
     "release:dry-run": "semantic-release --dry-run",
     "version:check": "semantic-release --dry-run --no-ci",
