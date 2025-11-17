@@ -29,6 +29,9 @@ export default {
     '/dist/',
     '/coverage/',
   ],
+  modulePathIgnorePatterns: [
+    '/dist/',
+  ],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.test.ts',
