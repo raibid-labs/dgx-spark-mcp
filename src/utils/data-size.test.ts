@@ -146,7 +146,7 @@ describe('Data Size Utilities', () => {
     it('should parse and format consistently', () => {
       const sizes = ['1GB', '10MB', '500KB', '2TB'];
 
-      sizes.forEach(size => {
+      sizes.forEach((size) => {
         const bytes = parseDataSize(size);
         const formatted = formatBytes(bytes);
         expect(formatted).toBeTruthy();

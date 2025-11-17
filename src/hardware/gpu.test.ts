@@ -16,13 +16,11 @@ import {
 // Mock nvidia-smi module
 jest.mock('./nvidia-smi.js');
 
-import {
-  isNvidiaSmiAvailable,
-  queryGPUs,
-  buildGPUTopology,
-} from './nvidia-smi.js';
+import { isNvidiaSmiAvailable, queryGPUs, buildGPUTopology } from './nvidia-smi.js';
 
-const mockIsNvidiaSmiAvailable = isNvidiaSmiAvailable as jest.MockedFunction<typeof isNvidiaSmiAvailable>;
+const mockIsNvidiaSmiAvailable = isNvidiaSmiAvailable as jest.MockedFunction<
+  typeof isNvidiaSmiAvailable
+>;
 const mockQueryGPUs = queryGPUs as jest.MockedFunction<typeof queryGPUs>;
 const mockBuildGPUTopology = buildGPUTopology as jest.MockedFunction<typeof buildGPUTopology>;
 
@@ -214,8 +212,16 @@ describe('GPU Detection', () => {
     });
 
     it('should sum available memory across multiple GPUs', async () => {
-      const gpu1 = { ...mockGPU, id: 0, memory: { total: 80 * 1024 ** 3, free: 40 * 1024 ** 3, used: 40 * 1024 ** 3 } };
-      const gpu2 = { ...mockGPU, id: 1, memory: { total: 80 * 1024 ** 3, free: 60 * 1024 ** 3, used: 20 * 1024 ** 3 } };
+      const gpu1 = {
+        ...mockGPU,
+        id: 0,
+        memory: { total: 80 * 1024 ** 3, free: 40 * 1024 ** 3, used: 40 * 1024 ** 3 },
+      };
+      const gpu2 = {
+        ...mockGPU,
+        id: 1,
+        memory: { total: 80 * 1024 ** 3, free: 60 * 1024 ** 3, used: 20 * 1024 ** 3 },
+      };
 
       mockIsNvidiaSmiAvailable.mockResolvedValue(true);
       mockQueryGPUs.mockResolvedValue([gpu1, gpu2]);
@@ -228,8 +234,16 @@ describe('GPU Detection', () => {
 
   describe('getAverageGPUUtilization', () => {
     it('should calculate average GPU utilization', async () => {
-      const gpu1 = { ...mockGPU, id: 0, utilization: { gpu: 50, memory: 60, encoder: 0, decoder: 0 } };
-      const gpu2 = { ...mockGPU, id: 1, utilization: { gpu: 30, memory: 40, encoder: 0, decoder: 0 } };
+      const gpu1 = {
+        ...mockGPU,
+        id: 0,
+        utilization: { gpu: 50, memory: 60, encoder: 0, decoder: 0 },
+      };
+      const gpu2 = {
+        ...mockGPU,
+        id: 1,
+        utilization: { gpu: 30, memory: 40, encoder: 0, decoder: 0 },
+      };
 
       mockIsNvidiaSmiAvailable.mockResolvedValue(true);
       mockQueryGPUs.mockResolvedValue([gpu1, gpu2]);

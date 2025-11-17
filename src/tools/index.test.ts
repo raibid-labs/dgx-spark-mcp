@@ -11,7 +11,7 @@ describe('Tools Registry', () => {
       const tools = listAllTools();
 
       expect(tools).toHaveLength(5);
-      expect(tools.map(t => t.name)).toEqual([
+      expect(tools.map((t) => t.name)).toEqual([
         'check_gpu_availability',
         'get_optimal_spark_config',
         'search_documentation',
@@ -23,7 +23,7 @@ describe('Tools Registry', () => {
     it('should include required properties for each tool', () => {
       const tools = listAllTools();
 
-      tools.forEach(tool => {
+      tools.forEach((tool) => {
         expect(tool).toHaveProperty('name');
         expect(tool).toHaveProperty('description');
         expect(tool).toHaveProperty('inputSchema');
@@ -36,7 +36,7 @@ describe('Tools Registry', () => {
     it('should have valid input schemas', () => {
       const tools = listAllTools();
 
-      tools.forEach(tool => {
+      tools.forEach((tool) => {
         expect(tool.inputSchema).toHaveProperty('type');
         expect(tool.inputSchema.type).toBe('object');
         expect(tool.inputSchema).toHaveProperty('properties');
@@ -112,7 +112,7 @@ describe('Tools Registry', () => {
 
   describe('Tool Schemas', () => {
     it('check_gpu_availability should have correct schema', () => {
-      const tool = listAllTools().find(t => t.name === 'check_gpu_availability')!;
+      const tool = listAllTools().find((t) => t.name === 'check_gpu_availability')!;
 
       expect(tool.inputSchema.properties).toHaveProperty('minMemoryGB');
       expect(tool.inputSchema.properties).toHaveProperty('minUtilization');
@@ -121,7 +121,7 @@ describe('Tools Registry', () => {
     });
 
     it('get_optimal_spark_config should have correct schema', () => {
-      const tool = listAllTools().find(t => t.name === 'get_optimal_spark_config')!;
+      const tool = listAllTools().find((t) => t.name === 'get_optimal_spark_config')!;
 
       expect(tool.inputSchema.required).toEqual(['workloadType', 'dataSize']);
       expect(tool.inputSchema.properties!.workloadType).toHaveProperty('enum');
@@ -130,7 +130,7 @@ describe('Tools Registry', () => {
     });
 
     it('search_documentation should have correct schema', () => {
-      const tool = listAllTools().find(t => t.name === 'search_documentation')!;
+      const tool = listAllTools().find((t) => t.name === 'search_documentation')!;
 
       expect(tool.inputSchema.required).toEqual(['query']);
       expect(tool.inputSchema.properties!.limit).toHaveProperty('minimum', 1);
@@ -138,15 +138,19 @@ describe('Tools Registry', () => {
     });
 
     it('estimate_resources should have correct schema', () => {
-      const tool = listAllTools().find(t => t.name === 'estimate_resources')!;
+      const tool = listAllTools().find((t) => t.name === 'estimate_resources')!;
 
       expect(tool.inputSchema.required).toEqual(['description']);
       expect(tool.inputSchema.properties!.computeType).toHaveProperty('enum');
-      expect((tool.inputSchema.properties!.computeType as any).enum).toEqual(['cpu', 'gpu', 'mixed']);
+      expect((tool.inputSchema.properties!.computeType as any).enum).toEqual([
+        'cpu',
+        'gpu',
+        'mixed',
+      ]);
     });
 
     it('get_system_health should have correct schema', () => {
-      const tool = listAllTools().find(t => t.name === 'get_system_health')!;
+      const tool = listAllTools().find((t) => t.name === 'get_system_health')!;
 
       expect(tool.inputSchema.properties).toHaveProperty('verbose');
       expect(tool.inputSchema.properties!.verbose).toHaveProperty('type', 'boolean');

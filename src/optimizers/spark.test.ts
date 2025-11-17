@@ -91,7 +91,9 @@ describe('Spark Configuration Optimizer', () => {
       const small = await generateConfig(smallRequest);
       const large = await generateConfig(largeRequest);
 
-      expect(large.config.executor.instances).toBeGreaterThanOrEqual(small.config.executor.instances);
+      expect(large.config.executor.instances).toBeGreaterThanOrEqual(
+        small.config.executor.instances
+      );
     });
 
     it('should provide rationale for decisions', async () => {
@@ -104,7 +106,7 @@ describe('Spark Configuration Optimizer', () => {
 
       expect(result.rationale).toBeInstanceOf(Array);
       expect(result.rationale.length).toBeGreaterThan(0);
-      expect(result.rationale.some(r => r.includes('workload'))).toBe(true);
+      expect(result.rationale.some((r) => r.includes('workload'))).toBe(true);
     });
 
     it('should respect constraints', async () => {
