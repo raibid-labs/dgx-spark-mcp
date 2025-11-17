@@ -41,8 +41,8 @@ RUN apk add --no-cache \
     tini \
     curl \
     ca-certificates \
-    && addgroup -g 1000 dgx \
-    && adduser -D -u 1000 -G dgx dgx
+    && addgroup -g 10000 dgx \
+    && adduser -D -u 10000 -G dgx dgx
 
 # Set working directory
 WORKDIR /app
