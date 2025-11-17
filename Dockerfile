@@ -1,5 +1,5 @@
 # Stage 1: Build
-FROM node:20-alpine AS builder
+FROM node:25-alpine AS builder
 
 # Install build dependencies
 RUN apk add --no-cache \
@@ -29,7 +29,7 @@ RUN npm prune --production
 
 # ============================================================================
 # Stage 2: Production Runtime
-FROM node:20-alpine
+FROM node:25-alpine
 
 # Add labels
 LABEL maintainer="Raibid Labs"
