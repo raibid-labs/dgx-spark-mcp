@@ -115,7 +115,7 @@ describe('Spark Configuration Optimizer', () => {
         dataSize: '100GB',
         constraints: {
           maxExecutors: 4,
-          maxCoresPerExecutor: 4,
+          maxExecutorCores: 4,
         },
       };
 

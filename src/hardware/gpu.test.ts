@@ -2,29 +2,29 @@
  * Unit tests for GPU detection
  */
 
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
-import {
-  detectGPUs,
-  getGPU,
-  getGPUCount,
-  hasNVIDIAGPUs,
-  getTotalGPUMemory,
-  getAvailableGPUMemory,
-  getAverageGPUUtilization,
-} from './gpu.js';
+import { describe, it, expect, jest, beforeEach, beforeAll } from '@jest/globals';
+import { GPU } from '../types/gpu.js';
 
-// Mock nvidia-smi module
-jest.mock('./nvidia-smi.js');
-
-import { isNvidiaSmiAvailable, queryGPUs, buildGPUTopology } from './nvidia-smi.js';
-
-const mockIsNvidiaSmiAvailable = isNvidiaSmiAvailable as jest.MockedFunction<
-  typeof isNvidiaSmiAvailable
->;
-const mockQueryGPUs = queryGPUs as jest.MockedFunction<typeof queryGPUs>;
-const mockBuildGPUTopology = buildGPUTopology as jest.MockedFunction<typeof buildGPUTopology>;
+// Define mock types
+type MockIsNvidiaSmiAvailable = jest.MockedFunction<() => Promise<boolean>>;
+type MockQueryGPUs = jest.MockedFunction<() => Promise<GPU[]>>;
+type MockBuildGPUTopology = jest.MockedFunction<(gpus: GPU[]) => Promise<any>>;
 
 describe('GPU Detection', () => {
+  // Module functions
+  let detectGPUs: any;
+  let getGPU: any;
+  let getGPUCount: any;
+  let hasNVIDIAGPUs: any;
+  let getTotalGPUMemory: any;
+  let getAvailableGPUMemory: any;
+  let getAverageGPUUtilization: any;
+
+  // Mocks
+  let mockIsNvidiaSmiAvailable: MockIsNvidiaSmiAvailable;
+  let mockQueryGPUs: MockQueryGPUs;
+  let mockBuildGPUTopology: MockBuildGPUTopology;
+
   const mockGPU = {
     id: 0,
     uuid: 'GPU-12345678-1234-1234-1234-123456789012',
@@ -45,6 +45,31 @@ describe('GPU Detection', () => {
     powerDraw: 50,
     powerLimit: 400,
   };
+
+  beforeAll(async () => {
+    // Create mock functions
+    mockIsNvidiaSmiAvailable = jest.fn() as MockIsNvidiaSmiAvailable;
+    mockQueryGPUs = jest.fn() as MockQueryGPUs;
+    mockBuildGPUTopology = jest.fn() as MockBuildGPUTopology;
+
+    // Mock the module using unstable_mockModule (required for ESM)
+    jest.unstable_mockModule('./nvidia-smi.js', () => ({
+      __esModule: true,
+      isNvidiaSmiAvailable: mockIsNvidiaSmiAvailable,
+      queryGPUs: mockQueryGPUs,
+      buildGPUTopology: mockBuildGPUTopology,
+    }));
+
+    // Import the module under test dynamically AFTER mocking
+    const module = await import('./gpu.js');
+    detectGPUs = module.detectGPUs;
+    getGPU = module.getGPU;
+    getGPUCount = module.getGPUCount;
+    hasNVIDIAGPUs = module.hasNVIDIAGPUs;
+    getTotalGPUMemory = module.getTotalGPUMemory;
+    getAvailableGPUMemory = module.getAvailableGPUMemory;
+    getAverageGPUUtilization = module.getAverageGPUUtilization;
+  });
 
   beforeEach(() => {
     jest.clearAllMocks();

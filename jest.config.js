@@ -11,12 +11,7 @@ export default {
       'ts-jest',
       {
         useESM: true,
-        tsconfig: {
-          module: 'ESNext',
-          moduleResolution: 'NodeNext',
-          esModuleInterop: true,
-          allowSyntheticDefaultImports: true,
-        },
+        tsconfig: 'tsconfig.json',
       },
     ],
   },
@@ -54,9 +49,4 @@ export default {
   testTimeout: 10000,
   verbose: true,
   maxWorkers: '50%',
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
-  },
 };

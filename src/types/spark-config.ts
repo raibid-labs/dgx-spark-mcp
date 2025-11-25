@@ -116,6 +116,7 @@ export interface ConfigConstraints {
   maxDriverMemory?: number;
   maxExecutors?: number;
   minExecutors?: number;
+  maxExecutorCores?: number;
   preferredExecutorCores?: number;
   enableGPU?: boolean;
   enableDynamicAllocation?: boolean;

@@ -202,6 +202,8 @@ export async function classifyWorkload(
     matches: 0,
   };
 
+  // console.log('DEBUG: classifyWorkload', { request, bestMatch, patternScores: patternScores.slice(0, 3) });
+
   // Determine workload type
   const workloadType: WorkloadType =
     bestMatch.score > 0.1 ? (bestMatch?.pattern?.recommendedType ?? 'mixed') : 'mixed';
@@ -264,6 +266,72 @@ export async function classifyWorkload(
     characteristics,
     recommendedResources,
     optimizationHints,
+  };
+}
+
+/**
+ * Analyze workload requirements based on type and size
+ */
+export async function analyzeWorkloadRequirements(request: {
+  workloadType: WorkloadType;
+  dataSize: string | number;
+}): Promise<{
+  estimatedCores: number;
+  estimatedMemoryGB: number;
+  estimatedExecutors: number;
+  recommendGPU: boolean;
+  estimatedDurationMinutes: number;
+}> {
+  const dataSize =
+    typeof request.dataSize === 'string' ? parseSize(request.dataSize) : request.dataSize;
+  const dataSizeGB = dataSize / 1024 ** 3;
+
+  // Reuse recommendResources logic by mocking characteristics
+  const characteristics: WorkloadCharacteristics = {
+    type: request.workloadType,
+    dataSize: dataSize,
+    computeIntensity: 'medium', // default
+    ioPattern: 'sequential',
+    gpuUtilization: 'none',
+    memoryFootprint: {
+      estimatedPeakGB: dataSizeGB * 2, // rough estimate
+      spillRisk: 'low',
+    },
+    shuffleIntensity: 'moderate',
+    confidence: 1.0,
+  };
+
+  // Refine characteristics based on type
+  if (request.workloadType === 'ml-training') {
+    characteristics.gpuUtilization = 'high';
+    characteristics.computeIntensity = 'very-high';
+  } else if (request.workloadType === 'etl') {
+    characteristics.gpuUtilization = 'none';
+  } else if (request.workloadType === 'analytics') {
+    characteristics.gpuUtilization = 'low';
+  }
+
+  const resources = recommendResources(characteristics);
+
+  const recommendGPU = (resources.gpuCount ?? 0) > 0;
+
+  const estimatedCores = resources.executorCount * resources.executorCores;
+  const estimatedMemoryGB = resources.executorCount * resources.executorMemoryGB;
+
+  // Simple duration estimate
+  let throughputGBps = 0.1; // 100MB/s per core baseline
+  if (recommendGPU) throughputGBps *= 3;
+
+  const totalThroughput = throughputGBps * estimatedCores;
+  // Duration in minutes
+  const estimatedDurationMinutes = dataSizeGB / totalThroughput / 60;
+
+  return {
+    estimatedCores,
+    estimatedMemoryGB,
+    estimatedExecutors: resources.executorCount,
+    recommendGPU,
+    estimatedDurationMinutes: Math.max(1, estimatedDurationMinutes),
   };
 }
 

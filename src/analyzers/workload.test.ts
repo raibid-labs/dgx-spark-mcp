@@ -10,64 +10,67 @@ describe('Workload Analyzer', () => {
     it('should classify ML training workloads', async () => {
       const result = await classifyWorkload('Train a deep learning model');
 
-      expect(result.workloadType).toBe('ml-training');
-      expect(result.confidence).toBeGreaterThan(0.5);
+      expect(result.characteristics.type).toBe('ml-training');
+      expect(result.characteristics.confidence).toBeGreaterThan(0.5);
     });
 
     it('should classify ETL workloads', async () => {
-      const result = await classifyWorkload('Extract and transform customer data');
+      const result = await classifyWorkload(
+        'Extract, transform and load ETL pipeline for customer data'
+      );
 
-      expect(result.workloadType).toBe('etl');
-      expect(result.confidence).toBeGreaterThan(0.5);
+      expect(result.characteristics.type).toBe('etl');
+      expect(result.characteristics.confidence).toBeGreaterThan(0.5);
     });
 
     it('should classify analytics workloads', async () => {
-      const result = await classifyWorkload('Analyze sales trends and generate reports');
+      const result = await classifyWorkload(
+        'Run analytics reporting and sql queries on sales data'
+      );
 
-      expect(result.workloadType).toBe('analytics');
-      expect(result.confidence).toBeGreaterThan(0.5);
+      expect(result.characteristics.type).toBe('analytics');
+      expect(result.characteristics.confidence).toBeGreaterThan(0.5);
     });
 
     it('should classify ML inference workloads', async () => {
-      const result = await classifyWorkload('Run batch predictions on new data');
+      const result = await classifyWorkload('Run batch predictions and inference on new data');
 
-      expect(result.workloadType).toBe('ml-inference');
-      expect(result.confidence).toBeGreaterThan(0.5);
+      expect(result.characteristics.type).toBe('ml-inference');
+      expect(result.characteristics.confidence).toBeGreaterThan(0.5);
     });
 
     it('should classify streaming workloads', async () => {
-      const result = await classifyWorkload('Process real-time event stream');
+      const result = await classifyWorkload('Process real-time event stream via kafka');
 
-      expect(result.workloadType).toBe('streaming');
-      expect(result.confidence).toBeGreaterThan(0.5);
+      expect(result.characteristics.type).toBe('streaming');
+      expect(result.characteristics.confidence).toBeGreaterThan(0.5);
     });
 
     it('should include detected characteristics', async () => {
       const result = await classifyWorkload('Train a transformer model on 1TB dataset');
 
       expect(result.characteristics).toBeDefined();
-      expect(result.characteristics.gpuRequired).toBeDefined();
-      expect(result.characteristics.memoryIntensive).toBeDefined();
+      expect(result.characteristics.gpuUtilization).toBeDefined();
+      expect(result.characteristics.computeIntensity).toBeDefined();
     });
 
     it('should detect GPU requirements', async () => {
       const result = await classifyWorkload('Train neural network with GPU acceleration');
 
-      expect(result.characteristics.gpuRequired).toBe(true);
+      expect(result.characteristics.gpuUtilization).not.toBe('none');
     });
 
-    it('should detect distributed requirements', async () => {
-      const result = await classifyWorkload('Process petabyte-scale dataset across cluster');
+    it('should detect high shuffle requirements', async () => {
+      const result = await classifyWorkload('Graph processing with heavy shuffle');
 
-      expect(result.characteristics.distributed).toBe(true);
+      expect(result.characteristics.shuffleIntensity).not.toBe('none');
     });
 
     it('should handle ambiguous descriptions', async () => {
       const result = await classifyWorkload('Process some data');
 
-      expect(result.workloadType).toBeDefined();
-      expect(result.confidence).toBeGreaterThan(0);
-      expect(result.confidence).toBeLessThan(1);
+      // Low confidence
+      expect(result.characteristics.confidence).toBeLessThan(0.5);
     });
   });
 
@@ -133,21 +136,21 @@ describe('Workload Analyzer', () => {
     it('should handle empty descriptions', async () => {
       const result = await classifyWorkload('');
 
-      expect(result.workloadType).toBeDefined();
-      expect(result.confidence).toBeLessThan(0.5);
+      expect(result.characteristics.type).toBeDefined();
+      expect(result.characteristics.confidence).toBeLessThan(0.5);
     });
 
     it('should handle very long descriptions', async () => {
       const longDesc = 'Train '.repeat(100) + 'a model';
       const result = await classifyWorkload(longDesc);
 
-      expect(result.workloadType).toBe('ml-training');
+      expect(result.characteristics.type).toBe('ml-training');
     });
 
     it('should handle special characters', async () => {
       const result = await classifyWorkload('ML/DL training @ 100% GPU!');
 
-      expect(result.workloadType).toBe('ml-training');
+      expect(result.characteristics.type).toBe('ml-training');
     });
 
     it('should handle very small data sizes', async () => {

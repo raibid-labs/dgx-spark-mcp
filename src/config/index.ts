@@ -60,7 +60,7 @@ export class ConfigLoader {
     if (env['DGX_MCP_PORT']) {
       this.config.server.port = parseInt(env['DGX_MCP_PORT'], 10);
     }
-    if (env['DGX_MCP_HOST']) {
+    if (env['DGX_MCP_HOST'] !== undefined) {
       this.config.server.host = env['DGX_MCP_HOST'];
     }
     if (env['NODE_ENV']) {
@@ -74,21 +74,21 @@ export class ConfigLoader {
     if (env['DGX_MCP_LOG_FORMAT']) {
       this.config.logging.format = env['DGX_MCP_LOG_FORMAT'] as Config['logging']['format'];
     }
-    if (env['DGX_MCP_LOG_DIR']) {
+    if (env['DGX_MCP_LOG_DIR'] !== undefined) {
       this.config.logging.dir = env['DGX_MCP_LOG_DIR'];
     }
     if (env['DGX_MCP_LOG_MAX_FILES']) {
       this.config.logging.maxFiles = parseInt(env['DGX_MCP_LOG_MAX_FILES'], 10);
     }
-    if (env['DGX_MCP_LOG_MAX_SIZE']) {
+    if (env['DGX_MCP_LOG_MAX_SIZE'] !== undefined) {
       this.config.logging.maxSize = env['DGX_MCP_LOG_MAX_SIZE'];
     }
 
     // MCP configuration
-    if (env['DGX_MCP_SERVER_NAME']) {
+    if (env['DGX_MCP_SERVER_NAME'] !== undefined) {
       this.config.mcp.serverName = env['DGX_MCP_SERVER_NAME'];
     }
-    if (env['DGX_MCP_SERVER_VERSION']) {
+    if (env['DGX_MCP_SERVER_VERSION'] !== undefined) {
       this.config.mcp.serverVersion = env['DGX_MCP_SERVER_VERSION'];
     }
     if (env['DGX_MCP_TRANSPORT']) {
@@ -96,7 +96,7 @@ export class ConfigLoader {
     }
 
     // Hardware configuration
-    if (env['DGX_MCP_NVIDIA_SMI_PATH']) {
+    if (env['DGX_MCP_NVIDIA_SMI_PATH'] !== undefined) {
       this.config.hardware.nvidiaSmiPath = env['DGX_MCP_NVIDIA_SMI_PATH'];
     }
     if (env['DGX_MCP_HARDWARE_CACHE_TTL']) {
@@ -107,10 +107,10 @@ export class ConfigLoader {
     }
 
     // Spark configuration
-    if (env['DGX_MCP_SPARK_HOME']) {
+    if (env['DGX_MCP_SPARK_HOME'] !== undefined) {
       this.config.spark.sparkHome = env['DGX_MCP_SPARK_HOME'];
     }
-    if (env['DGX_MCP_SPARK_CONF_DIR']) {
+    if (env['DGX_MCP_SPARK_CONF_DIR'] !== undefined) {
       this.config.spark.sparkConfDir = env['DGX_MCP_SPARK_CONF_DIR'];
     }
 
@@ -132,7 +132,7 @@ export class ConfigLoader {
     if (env['DGX_MCP_ENABLE_AUTH']) {
       this.config.security.enableAuth = env['DGX_MCP_ENABLE_AUTH'] === 'true';
     }
-    if (env['DGX_MCP_API_KEY']) {
+    if (env['DGX_MCP_API_KEY'] !== undefined) {
       this.config.security.apiKey = env['DGX_MCP_API_KEY'];
     }
   }

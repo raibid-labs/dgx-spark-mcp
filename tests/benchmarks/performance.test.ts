@@ -119,7 +119,7 @@ describe('Performance Benchmarks', () => {
 
   describe('Spark Config Generation', () => {
     it('should generate config in < 50ms (P95)', async () => {
-      const { generateSparkConfig } = await import('../../src/optimizers/spark-config.js');
+      const { generateConfig } = await import('../../src/optimizers/spark.js');
       const { createMockHardwareTopology } = await import('../../src/__tests__/utils.js');
 
       const topology = createMockHardwareTopology();
@@ -127,10 +127,12 @@ describe('Performance Benchmarks', () => {
       await benchmark(
         'Spark Config Generation',
         async () => {
-          await generateSparkConfig({
+          await generateConfig({
             workloadType: 'ml-training',
             dataSize: '100GB',
-            hardware: topology,
+            totalMemory: Math.round(topology.memory.total / (1024 * 1024 * 1024)),
+            totalCores: topology.cpu.cores.physical,
+            gpuCount: topology.gpus?.length || 0,
           });
         },
         50
@@ -161,8 +163,8 @@ describe('Performance Benchmarks', () => {
       }));
 
       const start = performance.now();
-      const filtered = largeArray.filter(item => item.value > 0.5);
-      const mapped = filtered.map(item => item.value);
+      const filtered = largeArray.filter((item) => item.value > 0.5);
+      const mapped = filtered.map((item) => item.value);
       const sum = mapped.reduce((a, b) => a + b, 0);
       const end = performance.now();
 
@@ -175,8 +177,8 @@ describe('Performance Benchmarks', () => {
   });
 
   describe('JSON Serialization', () => {
-    it('should serialize large objects quickly', () => {
-      const { createMockHardwareTopology } = require('../../src/__tests__/utils.js');
+    it('should serialize large objects quickly', async () => {
+      const { createMockHardwareTopology } = await import('../../src/__tests__/utils.js');
       const topology = createMockHardwareTopology();
 
       const start = performance.now();
